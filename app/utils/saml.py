@@ -379,9 +379,10 @@ class IdPHandler:
             assertion, "{urn:oasis:names:tc:SAML:2.0:assertion}AttributeStatement"
         )
         self._add_attribute(attribute_statement, "email", user["email"])
+
         if "groups" in user:
-            for groups in user["groups"]:
-                self._add_attribute(attribute_statement, "groups", groups)
+            for group in user["groups"].split(","):
+                self._add_attribute(attribute_statement, "groups", group.strip())
 
         # required by Check Point
         self._add_attribute(attribute_statement, "username", user["username"])

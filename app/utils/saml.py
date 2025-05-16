@@ -385,10 +385,6 @@ class IdPHandler:
 
         # required by Check Point
         self._add_attribute(attribute_statement, "username", user["username"])
-        # TODO remove
-        user["groups"] = ["fwadmins", "cpadmins"]
-        for grp in user.get("groups", []):
-            self._add_attribute(attribute_statement, "groups", grp)
 
         return assertion
 

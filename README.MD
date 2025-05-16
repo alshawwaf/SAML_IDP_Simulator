@@ -15,7 +15,7 @@ This simulator helps you:
 
 ---
 
- ![Alt text here](https://github.com/alshawwaf/SAML_IDP_Simulator/blob/main/assets/Demo-SC.gif)
+ ![](https://github.com/alshawwaf/SAML_IDP_Simulator/blob/main/assets/Demo-SC.gif)
 
 ---
 

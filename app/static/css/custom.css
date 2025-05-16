@@ -1,0 +1,33 @@
+/* Custom overrides */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.card {
+    border: none;
+    border-radius: 1rem;
+}
+
+.form-control-lg {
+    border-radius: .75rem;
+}
+
+.btn-primary {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-download {
+    margin-left: 0.5rem;
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-download:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}

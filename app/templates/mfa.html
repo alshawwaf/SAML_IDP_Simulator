@@ -1,0 +1,9 @@
+<div class="mfa-container">
+    <h2>Approve sign-in request</h2>
+    <p>Enter the code displayed in your authenticator app.</p>
+    <form method="POST" action="/mfa">
+        <input type="text" name="mfa_code" placeholder="123456">
+        <button>Verify</button>
+    </form>
+    <div class="bypass-note">Training: Any code works!</div>
+</div>

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="card ">
+    <div class="card-header text-white">
+    <div class="float-left">
+        <a href="{{ url_for('admin.idp_config') }}" class="text-black">
+            <i class="bi bi-gear lg-1"></i>IDP Config
+
+    </div>
+    <div class="float-right">        </a>
+                <a href="{{ url_for('admin.logout') }}" class="text-black">
+            <i class="bi bi-gear me-1"></i>Logout
+        </a></div>
+    </div>
+    </div>
+</br>
+    <div class="card-header bg-secondary text-white">
+        <h6 class="card-title mb-0">
+            <i class="bi bi-people-fill sm-1"></i>
+            User Management
+
+        </h6>
+    </div>
+
+    <div class="card-body">
+        <!-- Add User Form -->
+        <form method="POST" action="{{ url_for('admin.add_user') }}" class="mb-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="username" class="form-control" 
+                           placeholder="Username" required>
+                </div>
+                
+                <div class="col-md-3">
+                    <input type="email" name="email" class="form-control" 
+                           placeholder="Email" required>
+                </div>
+                
+                <div class="col-md-3">
+                    <input type="password" name="password" class="form-control" 
+                           placeholder="Password" required>
+                </div>
+                
+                <div class="col-md-2">
+                    <input type="text" name="groups" class="form-control" 
+                           placeholder="groups (comma separated)">
+                </div>
+                
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-plus-lg">Add</i>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <hr class="my-4">
+
+        <!-- Users Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-left">
+                <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>groups</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {{ user.groups}}
+                        </td>
+                        <td class="text ">
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('admin.edit_user', username=user.username) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                   <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <a href="{{ url_for('admin.delete_user', username=user.username) }}"
+                                   class="btn btn-sm btn-danger">
+                                   <i class="bi bi-trash">Delete</i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">
+                            No users found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

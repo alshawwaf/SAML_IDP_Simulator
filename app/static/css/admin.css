@@ -1,0 +1,13 @@
+/* Custom admin styles */
+.card-header h5 {
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.table-hover tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.form-floating label {
+    color: #6c757d;
+}

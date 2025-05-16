@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="card shadow mt-4">
+        <div class="card-header bg-primary text-white">
+            <h4>Edit User: {{ user.username }}</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="mb-3">
+                    <label>Username</label>
+                    <input type="text" class="form-control" value="{{ user.username }}" disabled>
+                </div>
+
+                <div class="mb-3">
+                    <label>Password</label>
+                    <input type="password" name="password" class="form-control" 
+                           placeholder="Password">
+                </div>
+
+                <div class="mb-3">
+                    <label>Email</label>
+                    <input type="email" name="email" class="form-control" 
+                           value="{{ user.email }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label>Groups</label>
+                    <input type="text" name="groups" class="form-control" 
+                           value="{{ user.groups }}" >
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-2"></i>Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -378,14 +378,15 @@ class IdPHandler:
         attribute_statement = etree.SubElement(
             assertion, "{urn:oasis:names:tc:SAML:2.0:assertion}AttributeStatement"
         )
+
+        # required by Check Point
+        self._add_attribute(attribute_statement, "username", user["username"])
+
         self._add_attribute(attribute_statement, "email", user["email"])
 
         if "groups" in user:
             for group in user["groups"].split(","):
                 self._add_attribute(attribute_statement, "groups", group.strip())
-
-        # required by Check Point
-        self._add_attribute(attribute_statement, "username", user["username"])
 
         return assertion
 

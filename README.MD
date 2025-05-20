@@ -60,7 +60,7 @@ sequenceDiagram
 
 ## 💡 Typical Use Case
 
-1. Configure your Check Point gateway to trust the simulator as an IdP  
+1. Configure your Check Point and add a new Identity Provider Object
 2. Trigger login from SmartConsole / Portal  
 3. The simulator receives and parses the AuthnRequest  
 4. User logs in via the web interface  

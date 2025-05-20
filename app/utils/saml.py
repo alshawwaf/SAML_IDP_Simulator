@@ -268,7 +268,7 @@ class IdPHandler:
             "{urn:oasis:names:tc:SAML:2.0:assertion}NameID",
             Format="urn:oasis:names:tc:SAML:1.1:username-format:unspecified",
         )
-        name_id.text = user["username"]  # Use username instead of email
+        name_id.text = user["email"]  # Use email since it is required for Infinity Portal
 
         # AuthnStatement
         authn_statement = etree.SubElement(

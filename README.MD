@@ -109,7 +109,7 @@ Set `ENABLE_SSL=false` to run without HTTPS (useful behind a reverse proxy):
 
 ```bash
 docker run -p 5000:5000 -e ENABLE_SSL=false saml-idp-simulator
-
+```
 ---
 
 ## ⚙️ Configuration

@@ -60,7 +60,7 @@ sequenceDiagram
 
 ## 💡 Typical Use Case
 
-1. Configure your Check Point gateway to trust the simulator as an IdP  
+1. Configure your Check Point and add a new Identity Provider Object
 2. Trigger login from SmartConsole / Portal  
 3. The simulator receives and parses the AuthnRequest  
 4. User logs in via the web interface  
@@ -103,6 +103,12 @@ docker run -p 5000:5000 \
   -e KEY_PATH=/app/certs/idp-key.pem \
   saml-idp-simulator
 ```
+
+### 🔄 SSL Toggle
+Set `ENABLE_SSL=false` to run without HTTPS (useful behind a reverse proxy):
+
+```bash
+docker run -p 5000:5000 -e ENABLE_SSL=false saml-idp-simulator
 
 ---
 

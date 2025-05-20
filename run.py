@@ -67,10 +67,11 @@ app = create_app()
 if __name__ == "__main__":
     host = os.getenv("IDP_HOST", "127.0.0.1")
     port = int(os.getenv("IDP_PORT", 5000))
-    app.run(
-        host=host,
-        port=port,
-        debug=True,
-        ssl_context=(CERT_PATH, KEY_PATH),
-        use_reloader=False,
-    )
+    port = int(os.getenv("IDP_PORT", 5000))
+    use_ssl = os.environ.get("ENABLE_SSL", "true").lower() == "true"
+    if use_ssl:
+        print("🔐 Starting with SSL...")
+        app.run(host=host, port=port, ssl_context=(CERT_PATH, KEY_PATH))
+    else:
+        print("⚠️  Starting WITHOUT SSL (HTTP)...")
+        app.run(host=host, port=port)

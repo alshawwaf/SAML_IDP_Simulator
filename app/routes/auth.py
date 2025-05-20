@@ -14,7 +14,7 @@ from urllib.parse import unquote
 import base64
 import zlib
 from lxml import etree
-import os
+import time
 from app.utils.user_manager import UserManager
 from app.utils.saml import IdPHandler
 from app.utils.logger_main import log
@@ -63,6 +63,7 @@ def logout():
 @auth_bp.route("/sso", methods=["GET"])
 def handle_saml_request():
     """Process SAML AuthnRequest from Check Point"""
+    start = time.perf_counter()
     try:
         log.debug(f"Received SAMLRequest: {request.args.get('SAMLRequest')}")
         log.debug(f"HTTP Headers: {dict(request.headers)}")
@@ -115,6 +116,10 @@ def handle_saml_request():
         log.error(f"Unexpected error: {str(e)}", exc_info=True)
         return render_template("error.html", error="Internal server error"), 500
 
+    finally:
+        duration = time.perf_counter() - start
+        log.info(f"/sso route processed in {duration:.3f} seconds")
+
 
 @auth_bp.route("/login", methods=["POST"])
 def handle_login():
@@ -147,36 +152,25 @@ def handle_login():
         # Clear previous sessions
         session.clear()
 
-        # Handle SAML user - ensure username is used as NameID
-        response = IdPHandler().create_saml_response(
-            user={
-                "username": user["username"],
-                "name_id": user["username"],
-                "attributes": {
-                    "UserID": user["username"],
-                    "Email": user.get("email", ""),
-                },
-            },
-            in_response_to=saml_data["request_id"],
-            sp_entity_id=saml_data["sp_entity_id"],
-            destination=saml_data["acs_url"],
-        )
+        sp = IdPHandler().get_sp(saml_data["sp_entity_id"])
+        if not sp:
+            return render_template("error.html", error="Untrusted SP")
 
         response = IdPHandler().create_saml_response(
             user={
                 "username": user["username"],
-                "name_id": user["username"],
-                "groups": user.get("groups", []),  # list → groups
+                "sp_entity_id": sp.entity_id,  # pass to assertion builder
                 "attributes": {
-                    "username": user["username"],
+                    "email": user["email"],
+                    "first_name": user.get("first_name"),
+                    "last_name": user.get("last_name"),
                     "groups": user.get("groups", []),
                 },
             },
             in_response_to=saml_data["request_id"],
-            sp_entity_id=saml_data["sp_entity_id"],
-            destination=saml_data["acs_url"],
+            sp_entity_id=sp.entity_id,
+            destination=sp.acs_url,
         )
-
         # Set SAML user session
         session.update(
             {
@@ -205,19 +199,17 @@ def handle_login():
 
 
 def _decode_saml_request(saml_request_encoded):
-    """Decode and parse SAML request with security checks"""
+    start = time.perf_counter()
     try:
         # Add padding if needed
         saml_request_encoded += "=" * ((4 - len(saml_request_encoded) % 4) % 4)
         decoded = base64.urlsafe_b64decode(saml_request_encoded)
 
-        # Handle DEFLATE compression
         try:
             xml_content = zlib.decompress(decoded, -15).decode("utf-8")
         except zlib.error:
             xml_content = decoded.decode("utf-8")
 
-        # Secure XML parsing
         parser = etree.XMLParser(resolve_entities=False, no_network=True)
 
         log.debug(f"Raw SAML Request:\n{xml_content}")
@@ -226,6 +218,9 @@ def _decode_saml_request(saml_request_encoded):
     except Exception as e:
         log.error(f"Decoding failed: {str(e)}\nInput: {saml_request_encoded[:100]}...")
         raise
+    finally:
+        duration = time.perf_counter() - start
+        log.info(f"Decoded SAML request in {duration:.3f} seconds")
 
 
 def _validate_saml_request(root):

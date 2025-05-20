@@ -6,18 +6,28 @@ from app.utils.logger_main import log
 
 class UserManager:
     @staticmethod
-    def add_user(username, password, email, groups):
-        existing = User.query.filter_by(username=username).first()
-        if existing:
-            raise ValueError("User exists")
-        UserManager.validate_password_complexity(password)
-        new_user = User(
+    def add_user(
+        username,
+        password,
+        email=None,
+        groups=None,
+        first_name=None,
+        last_name=None,
+        user_id=None,
+    ):
+        from app import db
+        from app.utils.models import User
+
+        user = User(
             username=username,
-            password_hash=generate_password_hash(password),
             email=email,
-            groups=groups,
+            first_name=first_name,
+            last_name=last_name,
+            user_id=user_id,
+            groups=groups or ["saml_users"],
         )
-        db.session.add(new_user)
+        user.set_password(password)
+        db.session.add(user)
         db.session.commit()
 
     @staticmethod
@@ -27,16 +37,21 @@ class UserManager:
             raise ValueError("User not found")
 
         # Handle password update
-        if "password" in kwargs:
-            user.set_password(kwargs.pop("password"))
-            UserManager.validate_password_complexity(kwargs["password"])
+        password = kwargs.pop("password", None)
+        if password:
+            UserManager.validate_password_complexity(password)
+            user.set_password(password)
 
-        # Handle groups update
-        if "groups" in kwargs:
-            kwargs["groups"] = kwargs["groups"]  # Keep as list
+        # Ensure groups is stored as list
+        if "groups" in kwargs and isinstance(kwargs["groups"], str):
+            kwargs["groups"] = [
+                g.strip() for g in kwargs["groups"].split(",") if g.strip()
+            ]
 
+        # Update other attributes
         for key, value in kwargs.items():
-            setattr(user, key, value)
+            if hasattr(user, key):
+                setattr(user, key, value)
 
         db.session.commit()
 
@@ -56,6 +71,7 @@ class UserManager:
         log.debug(username)
         log.debug(password)
         user = User.query.filter_by(username=username).first()
+        log.debug(user)
         log.debug(user.password_hash)
         log.debug(user.username)
         if not user or not check_password_hash(user.password_hash, password):

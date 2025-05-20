@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Service Providers{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between mb-3">
+    <h4><i class="bi bi-hdd-network me-2"></i> Service Providers</h4>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSpModal">
+      <i class="bi bi-plus-lg me-1"></i> New SP
+    </button>
+  </div>
+
+  <table class="table table-bordered align-middle table-hover">
+    <thead class="bg-darkblue text-white">
+      <tr>
+        <th>Name</th>
+        <th>Entity ID</th>
+        <th>ACS URL</th>
+        <th>Attributes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sp in sps %}
+      <tr>
+        <td>{{ sp.name }}</td>
+        <td class="text-break">{{ sp.entity_id }}</td>
+        <td class="text-break">{{ sp.acs_url }}</td>
+<td class="align-middle" style="max-width: 280px;">
+  {% if sp.attr_map %}
+    <div class="d-flex flex-wrap gap-1">
+      {% for mapping in sp.attr_map %}
+        <span class="px-2 py-1 rounded text-light bg-darkblue small">
+          {{ mapping.claim }} → {{ mapping.value }}
+        </span>
+      {% endfor %}
+    </div>
+  {% else %}
+    <span class="text-muted">No mappings</span>
+  {% endif %}
+</td>
+
+        <td>
+          <button class="btn btn-sm btn-outline-primary edit-sp-btn"
+                  data-bs-toggle="modal"
+                  data-bs-target="#editSpModal"
+                  data-sp-id="{{ sp.id }}">
+            Edit
+          </button>
+
+          <form action="{{ url_for('admin.delete_sp', sp_id=sp.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+
+{% include "admin/modals/sp_modals.html" %}
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    const USER_FIELDS = {{ user_fields | tojson | safe }};
+  </script>
+  <script src="{{ url_for('static', filename='js/sp-claims.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/admin_modals.js') }}"></script>
+{% endblock %}

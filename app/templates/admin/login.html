@@ -1,40 +1,42 @@
 {% extends "base.html" %}
-
 {% block title %}Admin Login{% endblock %}
 
 {% block content %}
-
+<div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow-lg border-0 mt-5">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="bi bi-shield-lock me-2"></i>
-                        Admin Portal
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-darkblue text-white text-center">
+                    <h4 class="mb-0 py-2">
+                        <i class="bi bi-shield-lock me-2"></i> Admin Portal
                     </h4>
                 </div>
-                
-                <div class="card-body p-4">
+                <div class="card-body bg-light rounded-bottom">
+
+                    <!-- Logo -->
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='check-point-logo.png') }}" alt="Check Point Logo" height="48">
+                    </div>
+
+                    <!-- Login Form -->
                     <form method="POST" action="{{ url_for('admin.login') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
+
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" 
-                                   id="username" name="username" 
-                                   required autofocus>
+                            <input type="text" name="username" id="username"
+                                   class="form-control" required autofocus>
                         </div>
-                        
+
                         <div class="mb-4">
                             <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" 
-                                   id="password" name="password" required>
+                            <input type="password" name="password" id="password"
+                                   class="form-control" required>
                         </div>
-                        
+
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>
-                                Sign In
+                            <button type="submit" class="btn btn-darkblue text-white">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
                             </button>
                         </div>
                     </form>
@@ -43,4 +45,20 @@
         </div>
     </div>
 </div>
+
+<style>
+    .bg-darkblue {
+        background-color: #003366 !important;
+    }
+
+    .btn-darkblue {
+        background-color: #003366;
+        border-color: #003366;
+    }
+
+    .btn-darkblue:hover {
+        background-color: #002752;
+        border-color: #002752;
+    }
+</style>
 {% endblock %}

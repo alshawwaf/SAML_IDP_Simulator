@@ -13,7 +13,8 @@ from pathlib import Path
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="static")
+
     load_dotenv()
 
     app.config.update(
@@ -26,10 +27,6 @@ def create_app():
             os.getenv("ADMIN_PASSWORD", "Vpn123!1")
         ),
     )
-    # Initialize config first
-    CONFIG_PATH = paths.config_dir / "idps" / "idp-config.xml"
-    if not CONFIG_PATH.exists():
-        IdPConfigManager.initialize()
 
     # Initialize extensions AFTER config
     db.init_app(app)
@@ -46,7 +43,7 @@ def create_app():
 
     app.register_blueprint(auth_bp, url_prefix="/")
     app.register_blueprint(metadata_bp)
-    app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(admin_bp)
 
     # Configure CSP to allow css to load inside the admin pages
     csp = {
@@ -54,12 +51,12 @@ def create_app():
         "style-src": [
             "'self'",
             "https://cdn.jsdelivr.net",
-            "'unsafe-inline'",  
+            "'unsafe-inline'",
         ],
         "script-src": [
             "'self'",
             "https://cdn.jsdelivr.net",
-            "'unsafe-inline'",  
+            "'unsafe-inline'",
         ],
         "font-src": ["'self'", "https://cdn.jsdelivr.net", "data:"],
         "img-src": [
@@ -72,8 +69,13 @@ def create_app():
     Talisman(
         app,
         content_security_policy=csp,
-        content_security_policy_nonce_in=["script-src"],
+        content_security_policy_nonce_in=[],
     )
+
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+    @app.template_filter("zip")
+    def zip_filter(a, b):
+        return zip(a, b)
 
     return app

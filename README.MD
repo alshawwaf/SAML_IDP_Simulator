@@ -1,4 +1,4 @@
-# SAML IDP Simulator for Check Point
+# 🛡️ SAML IDP Simulator for Check Point
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)  [![SAML 2.0](https://img.shields.io/badge/SAML-2.0-green)](https://en.wikipedia.org/wiki/SAML_2.0)  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -6,117 +6,97 @@
 
 ## 🚀 Overview
 
-**SAML IDP Simulator SMS** is a professional Identity Provider (IdP) simulator designed for **integration, demonstration, and testing** with enterprise SAML 2.0 Service Providers, including **Check Point Harmony**, **Quantum**, **CloudGuard**, and SASE products. This draft works with SmartCnsole authentication. More to be added.
+The **SAML IDP Simulator** is a modern Identity Provider emulator tailored for **Check Point environments** (Harmony, Quantum, CloudGuard, SASE). It provides a **production-grade SAML SSO experience** for:
 
-This simulator helps you:
-- Mimic a real-world SAML Identity Provider  
-- Test and demonstrate SAML authentication, assertion attributes, and signature flows  
-- Integrate seamlessly with Check Point security products for workshops, demos, and PoCs  
+- Security PoCs
+- Workshops and demos
+- Integration testing
+
+✨ Featuring a full-featured **web admin portal**, **dynamic attribute mapping**, and **realistic SAML flows**, it's your best tool for simulating enterprise SAML logins.
 
 ---
 
- ![](https://github.com/alshawwaf/SAML_IDP_Simulator/blob/main/assets/Demo-SC.gif)
+![Demo](https://github.com/alshawwaf/SAML_IDP_Simulator/blob/main/assets/Demo-SC.gif)
 
 ---
 
 ## 🌟 Key Features
 
-- 🔒 **Full SAML 2.0 Protocol Support**: AuthnRequest, SP-initiated SSO, signed Assertions & Responses  
-- 📝 **Custom Attribute Mapping**: Send any attribute, group, username, or custom fields  
-- 🔑 **Dual Signature**: Signs both `<Response>` and `<Assertion>` with X.509 certificates  
-- 📄 **Web-based User Login Flow**: HTML-based login, error handling, and session management  
-- 🛠️ **Group Simulation**: Mimic user groups, or multi-attribute scenarios  
-- ⚡ **Compatible with Check Point and other SAML SPs**  
+- 🔐 **SP-Initiated SSO** using signed SAML Response + Assertion  
+- 🧩 **Dynamic Attribute Mapping** via admin UI (claim → user field)  
+- 👤 **User Management** with modal-based edit/create/delete  
+- 🧪 **Multi-SP Support** with isolated configuration per SP  
+- 🔑 **X.509 Dual Signature** support  
+- 🕸️ **Web Login Flow** simulates realistic browser-based authentication  
+- 📁 **One-click Metadata / Certificate Download**  
+- ⚙️ **Admin Portal** for easy control and visibility  
 
 ---
 
-## 🏗️ Architecture Diagram
+## 🧱 Architecture (SAML Flow)
 
 ```mermaid
+sequenceDiagram
+    participant SP as Service Provider (Check Point)
+    participant Browser as User Browser
+    participant IdP as Identity Provider (Simulator)
 
-graph TD
-    Browser["User's Browser"]
-    IdP["SAML IDP Server"]
-    SP["SAML SP (Check Point)"]
-    
-    Browser -->|AuthnRequest| IdP
-    IdP -->|Login Page| Browser
-    Browser -->|Credentials| IdP
-    IdP -->|SAML Response| SP
+    Note over SP,Browser: SP-Initiated SSO
 
+    SP->>+Browser: Redirect with AuthnRequest (Base64, POST)
+    Browser->>+IdP: Send AuthnRequest to /sso
+    IdP->>Browser: Login Page HTML
+    Browser->>IdP: POST credentials
+    IdP->>IdP: Validate credentials, fetch SP config
+    IdP->>IdP: Generate SAML Assertion + Response
+    IdP->>Browser: HTML Form with auto-submit to ACS URL
+    Browser->>SP: POST SAMLResponse + RelayState
+    SP->>SP: Validate signatures, parse Assertion
+    SP-->>Browser: Authenticated session or portal
 ```
----
 
-## ⚙️ How It Works
-
-1. **SP-initiated SSO**: Check Point (or any SP) sends an AuthnRequest to the `/sso` endpoint.  
-2. **IdP handles request**: The simulator decodes, validates, and extracts the SP entity ID, ACS URL, and RelayState.  
-3. **User Authentication**: User logs in via the simulator’s web login page.  
-4. **SAML Response Generation**:  
-   - Builds and signs the `<Assertion>`  
-   - Builds and signs the `<Response>` (including the Assertion)  
-   - Both signatures embed the X.509 certificate  
-   - All fields (Issuer, InResponseTo, Audience, Recipient, etc.) match SP’s expectations  
-5. **Form POST**: The browser auto-submits the signed SAML response (and RelayState) to the SP’s ACS URL.  
-6. **SP Validation**: Check Point validates signatures, extracts attributes, and completes the login.  
 
 ---
 
-## 🔐 Supported Flows & Bindings
+## 💡 Typical Use Case
 
-- **SAML 2.0 SP-initiated SSO** (`urn:oasis:names:tc:SAML:2.0:protocol`)  
-- **HTTP-POST Binding** for both AuthnRequest and Response  
-- **Dual-Signature** (Response + Assertion)  
-- **Customizable** assertion attributes, including username, email, groups  
-
----
-
-## 💻 Integration Example: Check Point
-
-### Prerequisites
-- Check Point Quantum Management. Will add support for / Harmony / CloudGuard configured for SAML  
-- Simulator’s public signing certificate imported as the IdP certificate in Check Point. We can import the metadata file.
-
-### Steps
-
-1. **Configure Check Point**  
-   - **Entity ID**: Generated in the Idneity Provider Object in SmartConsole 
-   - **Reply URL / ACS URL**: Generated in the Idneity Provider Object in SmartConsole (e.g. `https://<sp-host>/cpmws/saml/acs/sso`)  
-
-2. **Configure the Simulator**  
-   - Add Check Point SP’s Entity ID and ACS URL to `trusted_sp` in config  (.venv) or from the IDP portal (/admin/idp-config)
-   - Ensure `CERT_PATH` and `KEY_PATH` point to your .pem files  
-
-3. **Test the Flow**  
-   - Initiate login from Check Point portal  
-   - Authenticate as a user in the simulator UI  
-   - Confirm successful SSO in Check Point  
-   - Note: Make sure the administrator exists in SmartConsole
+1. Configure your Check Point gateway to trust the simulator as an IdP  
+2. Trigger login from SmartConsole / Portal  
+3. The simulator receives and parses the AuthnRequest  
+4. User logs in via the web interface  
+5. A signed SAML Response + Assertion is generated and POSTed back  
+6. Check Point logs the user in ✅
 
 ---
 
-## 📝 Requirements
+## 🛠️ Setup Instructions
 
-- **Python** 3.8+  
-- **Flask**  
-- **lxml**  
-- **signxml**  
-- **flask-wtf**, **flask-limiter**  
-- (All other dependencies in `requirements.txt`)  
+### 🔧 Requirements
 
----
+- Python 3.8+
+- Flask
+- signxml, lxml, flask-wtf, flask-limiter
+- All dependencies: `pip install -r requirements.txt`
 
-## ⚙️ Installation
+### 📦 Install & Run
 
 ```bash
 # Clone the repo
 git clone https://github.com/alshawwaf/SAML-IDP-Simulator.git
-cd saml-idp-simulator
+cd SAML-IDP-Simulator
 
 # Install dependencies
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
-# [Optional] Build & run with Docker
+# Run
+python run.py
+```
+
+### 🐳 Optional: Run with Docker
+
+```bash
 docker build -t saml-idp-simulator .
 docker run -p 5000:5000 \
   -e CERT_PATH=/app/certs/idp-cert.pem \
@@ -126,68 +106,81 @@ docker run -p 5000:5000 \
 
 ---
 
-## 🔧 Configuration
+## ⚙️ Configuration
 
-1. **Variables**  
-   
-   Create a `.venv` file and update it with your environment values:
+### .venv File
+
 ```bash
 ADMIN_USERNAME="admin"
-ADMIN_PASSWORD="Vpn123!" # for the admin used in /admin/idp-config administation tasks (super admin for the DIP)
+ADMIN_PASSWORD="Vpn123!"
 SECRET_KEY="Super-very-secret-key"
 IDP_HOST="localhost"
 IDP_PORT="5000"
-DEFAULT_SP_ENTITY_ID="https://XXX.local/cpmws/saml/acs/id/XXX" 
-DEFAULT_SP_ACS_URL="https://IP/cpmws/saml/acs/sso"
+DEFAULT_SP_ENTITY_ID="https://your-sp.example.com/acs/id/..."
+DEFAULT_SP_ACS_URL="https://your-sp.example.com/acs/sso"
 SSO_SERVICE_URL="https://localhost:5000/sso"
 FLASK_DEBUG=1
-APP_BASE_PATH=.
-```
-
-2. **Environment Variables**  
-   - `SAML_ENDPOINT`: e.g. `https://localhost:5000/sso`  
-   - `CERT_PATH`, `KEY_PATH`: paths to your cert and private key  
-   - `IDP_HOST`, `IDP_PORT`: for Docker and entrypoint scripts  
-
-3. **Admin UI** (if available)  
-   - Navigate to `/admin/idp-config` to add or update SP entries  
-
----
-
-## ▶️ Running the Simulator
-
-```bash
-# Directly with Python
-python -m venv .venv
-python -m pip install -r requirements.txt
-python run.py
-
-# Or with Flask CLI
-export FLASK_APP=run.py
-flask run --cert=certs/idp-cert.pem --key=certs/idp-key.pem
-
-# Or via Docker
-docker run -p 5000:5000 \
-  -e CERT_PATH=/app/certs/idp-cert.pem \
-  -e KEY_PATH=/app/certs/idp-key.pem \
-  saml-idp-simulator
-```
-
-Access the UI at:  
-```
-https://localhost:5000/
 ```
 
 ---
 
-## 👤 User Guide
+## 🔐 Admin Portal
 
-- **GET /sso** – IdP endpoint for AuthnRequests  
-- **GET /login** – Login form for SAML users  
-- **POST /login** – Handle login, generate & send SAMLResponse  
-- **GET /logout** – End SAML session  
-- **GET /metadata** – Download SAML metadata XML  
-- **GET /download-cert** – Download IdP public certificate  
+> 🧭 Navigate to `https://localhost:5000/admin`
+
+### 🔹 SP Management
+- Add/edit SPs with:
+  - Name, Entity ID, ACS URL
+  - Claim-to-user-field mapping
+- Configure multiple SPs independently
+
+### 🔹 User Management
+- Add/edit/delete users
+- Auto-populated field mappings
+- Password hashing included
 
 ---
+
+## 🔄 Endpoints
+
+| Endpoint           | Description                      |
+|--------------------|----------------------------------|
+| `/sso`             | Handles incoming AuthnRequest    |
+| `/login`           | Login form                       |
+| `/logout`          | Logs the user out                |
+| `/metadata`        | SAML metadata XML                |
+| `/download-cert`   | Public certificate download      |
+| `/admin`           | Admin UI                         |
+
+---
+
+## 🧪 Check Point Integration Steps
+
+1. **In SmartConsole**:
+   - Create an Identity Provider object
+   - Set ACS URL and Entity ID
+   - Upload metadata or public certificate
+
+2. **In the Simulator**:
+   - Add SP config via admin UI
+   - Ensure ACS/Entity ID matches
+   - Start login from SmartConsole → simulate SSO
+
+✅ Ensure the user exists in both systems.
+
+---
+
+## 📄 License
+
+Licensed under the [MIT License](LICENSE)
+
+---
+
+## 🙌 Contributions Welcome
+
+Feel free to fork, improve, and submit PRs!
+
+---
+
+> Created by [@alshawwaf](https://github.com/alshawwaf) for internal Check Point use, PoC enablement, and community SAML simulation.
 

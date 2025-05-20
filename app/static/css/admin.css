@@ -11,3 +11,7 @@
 .form-floating label {
     color: #6c757d;
 }
+
+.navbar-brand img {
+    filter: brightness(0) invert(1); /* white logo effect on dark bg */
+}

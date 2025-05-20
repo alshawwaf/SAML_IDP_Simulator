@@ -1,157 +1,114 @@
 {% extends "base.html" %}
+{% block title %}Welcome to SAML IdP Simulator{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero py-5 bg-primary text-white">
-    <div class="container text-center py-5">
-        <div class="hero-brand mb-4">
-            <img src="/static/check-point-logo.png" alt="SAML Identity Provider" class="hero-logo">
-        </div>
-        <h1 class="display-4 fw-bold mb-3">SAML 2.0 Identity Provider Simulator</h1>
-        <p class="lead mb-4 opacity-75">Enterprise-grade identity management training environment</p>
-        <div class="cta-buttons d-grid gap-3 d-md-flex justify-content-center">
-            <a href="/admin" class="btn btn-light btn-lg px-4 py-3">
-                <i class="bi bi-shield-lock me-2"></i>Admin Dashboard
+<section class="hero bg-darkblue text-white py-5">
+    <div class="container text-center">
+        <img src="{{ url_for('static', filename='check-point-logo.png') }}" alt="Check Point" class="mb-4 hero-logo">
+        <h1 class="display-5 fw-bold">SAML 2.0 Identity Provider Simulator</h1>
+        <p class="lead opacity-75">Test and simulate secure SAML-based integrations.</p>
+
+        <!-- Primary Actions -->
+        <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-4">
+            <a href="/download-metadata" class="btn btn-outline-light btn-lg px-4 py-2">
+                <i class="bi bi-download me-2"></i> Download Metadata
             </a>
-            <a href="/metadata" class="btn btn-outline-light btn-lg px-4 py-3">
-                <i class="bi bi-file-earmark-code me-2"></i>View Metadata
-            </a>
-            <a href="/download-cert" class="btn btn-outline-light btn-lg px-4 py-3">
-                <i class="bi bi-download me-2"></i>Download Certificate
+            <button type="button" id="viewMetadataBtn" class="btn btn-outline-info btn-lg px-4 py-2" data-bs-toggle="modal" data-bs-target="#metadataModal">
+                <i class="bi bi-file-earmark-code me-2"></i> View Metadata
+            </button>
+            <a href="/download-cert" class="btn btn-outline-info btn-lg px-4 py-2">
+                <i class="bi bi-shield-lock me-2"></i> Certificate
             </a>
         </div>
     </div>
 </section>
 
-<!-- Value Proposition Section -->
-<section class="py-5 bg-white">
-    <div class="container py-5">
-        <div class="row g-5">
-            <div class="col-lg-4">
-                <div class="feature-card p-4 text-center border rounded-4 h-100">
-                    <div class="icon-wrapper bg-primary text-white rounded-circle mx-auto mb-3">
+<!-- Features -->
+<section class="bg-white py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card shadow-sm rounded-4 p-4 border">
+                    <div class="icon-wrapper bg-darkblue text-white rounded-circle mb-3">
                         <i class="bi bi-cloud-check fs-2"></i>
                     </div>
-                    <h3 class="h4 mb-3">SP Integration</h3>
-                    <p class="text-muted mb-0">Seamless service provider configuration with automatic metadata generation</p>
+                    <h5>SP Integration</h5>
+                    <p class="text-muted">Add SPs, configure claims, and test flows.</p>
                 </div>
             </div>
-            <div class="col-lg-4">
-                <div class="feature-card p-4 text-center border rounded-4 h-100">
-                    <div class="icon-wrapper bg-primary text-white rounded-circle mx-auto mb-3">
-                        <i class="bi bi-people fs-2"></i>
+            <div class="col-md-4">
+                <div class="feature-card shadow-sm rounded-4 p-4 border">
+                    <div class="icon-wrapper bg-darkblue text-white rounded-circle mb-3">
+                        <i class="bi bi-person-badge fs-2"></i>
                     </div>
-                    <h3 class="h4 mb-3">User Management</h3>
-                    <p class="text-muted mb-0">Full control over user groups, attributes, and access policies</p>
+                    <h5>User Management</h5>
+                    <p class="text-muted">Manage test users and group assignments.</p>
                 </div>
             </div>
-            <div class="col-lg-4">
-                <div class="feature-card p-4 text-center border rounded-4 h-100">
-                    <div class="icon-wrapper bg-primary text-white rounded-circle mx-auto mb-3">
-                        <i class="bi bi-file-lock fs-2"></i>
+            <div class="col-md-4">
+                <div class="feature-card shadow-sm rounded-4 p-4 border">
+                    <div class="icon-wrapper bg-darkblue text-white rounded-circle mb-3">
+                        <i class="bi bi-lock fs-2"></i>
                     </div>
-                    <h3 class="h4 mb-3">Security Tools</h3>
-                    <p class="text-muted mb-0">Certificate management and protocol validation utilities</p>
+                    <h5>Security & Certs</h5>
+                    <p class="text-muted">View or download public certificates.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Getting Started Section -->
-<section class="py-5 bg-light">
-    <div class="container py-5">
-        <h2 class="text-center mb-5 display-6 fw-bold">Quick Start Guide</h2>
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="guide-card p-4 border-0 rounded-4 bg-white shadow-sm h-100">
-                    <h4 class="d-flex align-items-center gap-2 mb-3">
-                        <i class="bi bi-server text-primary"></i>
-                        Service Provider Setup
-                    </h4>
-                    <ol class="list-steps">
-                        <li>Configure SP using our metadata endpoint</li>
-                        <li>Set ACS URL parameters</li>
-                        <li>Map SAML attributes to groups</li>
-                    </ol>
-                    <a href="/metadata" class="btn btn-link ps-0 text-decoration-none">
-                        Get Metadata <i class="bi bi-arrow-right"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="guide-card p-4 border-0 rounded-4 bg-white shadow-sm h-100">
-                    <h4 class="d-flex align-items-center gap-2 mb-3">
-                        <i class="bi bi-person-gear text-primary"></i>
-                        User Management
-                    </h4>
-                    <ol class="list-steps">
-                        <li>Access Admin Dashboard</li>
-                        <li>Create test users</li>
-                        <li>Configure attributes & groups</li>
-                    </ol>
-                    <a href="/admin" class="btn btn-link ps-0 text-decoration-none">
-                        Go to Admin <i class="bi bi-arrow-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
+<!-- Modal -->
+<div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="metadataModalLabel">SAML Metadata</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <pre id="metadataContent"class="language-markup" style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-primary" id="copyMetadataBtn">Copy to Clipboard</button>
+      </div>
     </div>
-</section>
+  </div>
+</div>
 
 
+<!-- Styles -->
 <style>
-    :root {
-        --primary-color: #0d6efd;
-        --hero-bg: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-    }
+:root { --darkblue: #003366; }
 
-    .hero {
-        background: var(--hero-bg);
-    }
+.bg-darkblue { background-color: var(--darkblue) !important; }
 
-    .hero-logo {
-        height: 60px;
-        filter: brightness(0) invert(1);
-    }
+.icon-wrapper {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-    .icon-wrapper {
-        width: 60px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+.hero-logo {
+    height: 60px;
+    filter: brightness(0) invert(1);
+}
 
-    .feature-card:hover {
-        transform: translateY(-5px);
-        transition: transform 0.3s ease;
-    }
-
-    .list-steps {
-        counter-reset: step;
-        padding-left: 1.5rem;
-    }
-
-    .list-steps li {
-        counter-increment: step;
-        margin-bottom: 1rem;
-        position: relative;
-    }
-
-    .list-steps li::before {
-        content: counter(step);
-        position: absolute;
-        left: -1.5rem;
-        background: var(--primary-color);
-        color: white;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.8rem;
-    }
+.feature-card:hover {
+    transform: translateY(-4px);
+    transition: transform 0.2s ease;
+}
 </style>
+{% endblock %}
+
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='js/metadata.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+
 {% endblock %}

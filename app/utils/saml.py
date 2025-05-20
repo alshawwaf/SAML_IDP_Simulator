@@ -10,64 +10,13 @@ from app.utils.path_config import paths
 from app.utils.logger_main import log
 from jinja2 import Environment, FileSystemLoader
 from app.utils.models import User
+from app.utils.models import ServiceProvider
 
 
 class IdPHandler:
     def __init__(self):
         self.config = IdPConfigManager.get_config()  # Use centralized config
         self._validate_certificates()
-        # Load XML template
-        self.template_env = Environment(
-            loader=FileSystemLoader(str(paths.config_dir / "idps")),
-            autoescape=True,
-        )
-        self.metadata_template = self.template_env.get_template("idp-template.xml")
-
-    def generate_config_xml(self, config):
-        NSMAP = {
-            "md": "urn:oasis:names:tc:SAML:2.0:metadata",
-            "samlp": "urn:oasis:names:tc:SAML:2.0:protocol",
-        }
-
-        root = etree.Element(
-            "{%s}EntityDescriptor" % NSMAP["md"],
-            entityID=config["entity_id"],
-            nsmap=NSMAP,
-        )
-
-        idp_desc = etree.SubElement(
-            root,
-            "{%s}IDPSSODescriptor" % NSMAP["md"],
-            protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol",
-        )
-
-        # Add SSO Service
-        etree.SubElement(
-            idp_desc,
-            "{%s}SingleSignOnService" % NSMAP["md"],
-            Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            Location=config["sso_service_url"],
-        )
-
-        # Add SPs
-        for sp in config.get("trusted_sp", []):
-            sp_desc = etree.SubElement(
-                root,
-                "{%s}SPSSODescriptor" % NSMAP["md"],
-                protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol",
-            )
-            etree.SubElement(sp_desc, "{%s}EntityID" % NSMAP["md"]).text = sp[
-                "entity_id"
-            ]
-            etree.SubElement(
-                sp_desc,
-                "{%s}AssertionConsumerService" % NSMAP["md"],
-                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-                Location=sp["acs_url"],
-                index="1",
-            )
-
-        return etree.tostring(root, pretty_print=True, encoding="unicode")
 
     def _validate_config_files(self):
         """Verify certificate files are readable"""
@@ -239,16 +188,17 @@ class IdPHandler:
                 raise ValueError(f"Untrusted SP: {sp_entity_id}")
 
             # Get SP configuration
-            sp_config = next(
-                sp
-                for sp in self.config["trusted_sp"]
-                if sp["entity_id"] == sp_entity_id
-            )
+            sp_config = ServiceProvider.query.filter_by(entity_id=sp_entity_id).first()
+            if not sp_config:
+                raise ValueError(
+                    f"No SP configuration found for entity ID: {sp_entity_id}"
+                )
 
             # Use configured ACS URL if destination not provided
+
             if destination is None:
-                destination = sp_config["acs_url"]
-                log.info(destination)
+                destination = sp_config.acs_url
+                log.debug(f" Destinaton: {destination}")
 
             response = etree.Element(
                 "{urn:oasis:names:tc:SAML:2.0:protocol}Response",
@@ -258,13 +208,11 @@ class IdPHandler:
                 Destination=destination,
                 InResponseTo=in_response_to,
             )
-
             # Add Issuer
             issuer = etree.SubElement(
                 response, "{urn:oasis:names:tc:SAML:2.0:assertion}Issuer"
             )
             issuer.text = self.config["entity_id"]
-
             # Add Status
             status = etree.SubElement(
                 response, "{urn:oasis:names:tc:SAML:2.0:protocol}Status"
@@ -365,82 +313,112 @@ class IdPHandler:
                 "%Y-%m-%dT%H:%M:%SZ"
             ),
         )
+
+        sp_entity_id = user["sp_entity_id"]
         audience = etree.SubElement(
             conditions, "{urn:oasis:names:tc:SAML:2.0:assertion}AudienceRestriction"
         )
         etree.SubElement(
             audience, "{urn:oasis:names:tc:SAML:2.0:assertion}Audience"
-        ).text = user[
-            "sp_entity_id"
-        ]  # Should come from SAML request
+        ).text = sp_entity_id  # Should come from SAML request
 
         # AttributeStatement
-        attribute_statement = etree.SubElement(
+        sp = self.get_sp(sp_entity_id)
+        attr_map = sp.attr_map
+
+        attr_stmt = etree.SubElement(
             assertion, "{urn:oasis:names:tc:SAML:2.0:assertion}AttributeStatement"
         )
 
-        # required by Check Point
-        self._add_attribute(attribute_statement, "username", user["username"])
+        for mapping in attr_map:
+            claim = mapping["claim"]
+            value_key = mapping["value"]
 
-        self._add_attribute(attribute_statement, "email", user["email"])
+            value = user.get(value_key) or user["attributes"].get(value_key)
+            if value is None:
+                log.warning(f"User field '{value_key}' not found for claim '{claim}'")
 
-        if "groups" in user:
-            for group in user["groups"].split(","):
-                self._add_attribute(attribute_statement, "groups", group.strip())
+            if isinstance(value, list):
+                for v in value:
+                    self._add_attribute(attr_stmt, claim, v)
+            elif value is not None:
+                self._add_attribute(attr_stmt, claim, value)
 
         return assertion
 
-    def generate_metadata(self, include_signature=True) -> str:
+    def generate_metadata(self, include_signature=True) -> bytes:
         try:
+            entity_id = self.config["entity_id"]
+            sso_url = self.config["sso_service_url"]
+
+            # Load certificate content
             cert_path = Path(self.config["signing_cert_path"])
             with cert_path.open("rb") as f:
-                cert_content = "".join(
-                    [
-                        line.strip().decode()
-                        for line in f
-                        if b"-----" not in line and line.strip()
-                    ]
-                )
+                cert = f.read()
 
-            metadata_xml = self.metadata_template.render(
-                entity_id=self.config["entity_id"],
-                sso_service_url=self.config["sso_service_url"],
-                cert_content=cert_content,
+            # Strip headers/footers and join to one line
+            cert_base64 = b"".join(
+                line for line in cert.splitlines() if b"-----" not in line
+            ).decode()
+
+            # Build XML
+            md_ns = "urn:oasis:names:tc:SAML:2.0:metadata"
+            ds_ns = "http://www.w3.org/2000/09/xmldsig#"
+            nsmap = {None: md_ns, "ds": ds_ns}
+
+            entity_descriptor = etree.Element(
+                "{%s}EntityDescriptor" % md_ns,
+                nsmap=nsmap,
+                entityID=entity_id,
+                ID="_idp-desc",
             )
 
-            root = etree.fromstring(metadata_xml.encode())
+            idp_sso_descriptor = etree.SubElement(
+                entity_descriptor,
+                "{%s}IDPSSODescriptor" % md_ns,
+                protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol",
+            )
+            etree.SubElement(idp_sso_descriptor, "{%s}NameIDFormat" % md_ns).text = (
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
+            )
+
+            # SSO Binding and Location
+            etree.SubElement(
+                idp_sso_descriptor,
+                "{%s}SingleSignOnService" % md_ns,
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+                Location=sso_url,
+            )
+
+            # Certificate
+            key_descriptor = etree.SubElement(
+                idp_sso_descriptor, "{%s}KeyDescriptor" % md_ns, use="signing"
+            )
+            key_info = etree.SubElement(key_descriptor, "{%s}KeyInfo" % ds_ns)
+            x509_data = etree.SubElement(key_info, "{%s}X509Data" % ds_ns)
+            x509_cert = etree.SubElement(x509_data, "{%s}X509Certificate" % ds_ns)
+            x509_cert.text = cert_base64
 
             if include_signature:
                 with open(self.config["signing_key_path"], "rb") as f:
                     private_key = f.read()
 
-                # Explicitly set signature location
-                signed_root = XMLSigner(
+                signed_entity = XMLSigner(
                     method=methods.enveloped,
                     signature_algorithm="rsa-sha256",
                     digest_algorithm="sha256",
                     c14n_algorithm="http://www.w3.org/2001/10/xml-exc-c14n#",
-                ).sign(
-                    root, key=private_key, reference_uri="#_idp-desc"  # Match XML ID
-                )
+                ).sign(entity_descriptor, key=private_key, reference_uri="#_idp-desc")
+                return etree.tostring(signed_entity, encoding="utf-8")
 
-                return etree.tostring(signed_root, encoding="utf-8")
-
-            return etree.tostring(root, encoding="utf-8")
+            return etree.tostring(entity_descriptor, encoding="utf-8")
 
         except Exception as e:
             log.error("Metadata generation failed: %s", str(e))
             raise
 
-    def validate_sp(self, sp_entity_id):
-        """Check XML config for trusted SPs"""
-        config_path = paths.config_dir / "idps" / "idp-config.xml"
-        if config_path.exists():
-            with open(config_path, "rb") as f:
-                xml_content = f.read()
-            root = etree.fromstring(xml_content)
-            return any(
-                sp.find(".//{*}EntityID").text == sp_entity_id
-                for sp in root.findall(".//{*}SPSSODescriptor")
-            )
-        return False
+    def get_sp(self, entity_id):
+        return ServiceProvider.query.filter_by(entity_id=entity_id).first()
+
+    def validate_sp(self, entity_id):
+        return self.get_sp(entity_id) is not None

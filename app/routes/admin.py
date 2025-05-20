@@ -7,25 +7,21 @@ from flask import (
     flash,
     session,
     current_app,
+    jsonify,
 )
 from functools import wraps
 from werkzeug.security import check_password_hash
 from flask_wtf.csrf import validate_csrf, CSRFError
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from app.utils.models import User
-from app.utils.config_manager import IdPConfigManager
+from app.utils.models import User, ServiceProvider
 from app.utils.user_manager import UserManager
-from app.utils.saml import IdPHandler
-from app.utils.path_config import paths
 from urllib.parse import urlparse
-from pathlib import Path
-import os
-from lxml import etree
+import uuid
+from app import db
+from app.utils.logger_main import log
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
-
-# Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -43,9 +39,8 @@ def admin_login_required(f):
 
 @admin_bp.after_request
 def add_security_headers(response):
-    """Add security headers to all admin routes"""
     headers = {
-        "Content-Security-Policy": "default-src 'self' 'unsafe-inline'",  # Allow inline scripts
+        "Content-Security-Policy": "default-src 'self' 'unsafe-inline'",
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
         "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
@@ -53,13 +48,6 @@ def add_security_headers(response):
     for header, value in headers.items():
         response.headers[header] = value
     return response
-
-
-@admin_bp.route("/")
-@admin_login_required
-def user_list():
-    users = User.query.all()
-    return render_template("admin/users.html", users=users)
 
 
 @admin_bp.route("/login", methods=["GET", "POST"])
@@ -77,19 +65,20 @@ def login():
             elif username == config["ADMIN_USERNAME"] and check_password_hash(
                 config["ADMIN_PASSWORD_HASH"], password
             ):
-                # Clear any existing sessions
                 session.clear()
-                # Set ADMIN-specific session
                 session["admin_logged_in"] = True
                 session["account_type"] = "admin"
                 session.permanent = False
-                return redirect(url_for("admin.user_list"))
+                return redirect(url_for("admin.user_management"))
             else:
                 flash("Invalid username or password", "danger")
-            return render_template("admin/login.html")
+
         except CSRFError:
             flash("Invalid CSRF token", "danger")
-            return render_template("admin/login.html")
+        except Exception as e:
+            log.error(f"Login error: {e}")
+            flash("Login failed", "danger")
+
     return render_template("admin/login.html")
 
 
@@ -108,50 +97,83 @@ def add_user():
     try:
         validate_csrf(request.form.get("csrf_token"))
 
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-        email = request.form.get("email", "").strip().lower()
-        groups = request.form.get("groups", "").strip()
-
-        if not all([username, password, email]):
+        data = {
+            k: request.form.get(k, "").strip()
+            for k in [
+                "username",
+                "password",
+                "email",
+                "first_name",
+                "last_name",
+                "groups",
+            ]
+        }
+        if not all(
+            [
+                data["username"],
+                data["password"],
+                data["email"],
+                data["first_name"],
+                data["last_name"],
+            ]
+        ):
             flash("All fields are required", "danger")
-            return redirect(url_for("admin.user_list"))
+            return redirect(url_for("admin.user_management"))
 
-        UserManager.add_user(username, password, email=email, groups=groups)
+        groups = [g.strip() for g in data["groups"].split(",") if g.strip()]
+        UserManager.add_user(
+            username=data["username"],
+            password=data["password"],
+            email=data["email"].lower(),
+            groups=groups,
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            user_id=str(uuid.uuid4()),
+        )
+
         flash("User added successfully", "success")
-
-    except ValueError as e:
+    except (ValueError, CSRFError) as e:
         flash(str(e), "danger")
-    except CSRFError:
-        flash("Invalid CSRF token", "danger")
     except Exception as e:
-        current_app.logger.error(f"User add error: {str(e)}")
+        log.error(f"User add error: {str(e)}", exc_info=True)
         flash("Error adding user", "danger")
 
-    return redirect(url_for("admin.user_list"))
+    return redirect(url_for("admin.user_management"))
 
 
-@admin_bp.route("/edit-user/<username>", methods=["GET", "POST"])
+@admin_bp.route("/update_user", methods=["POST"])
 @admin_login_required
-def edit_user(username):
-    user = User.query.filter_by(username=username).first_or_404()
+def update_user():
+    try:
+        username = request.form.get("username")
+        if not username:
+            return jsonify({"success": False, "error": "Username is required"}), 400
 
-    if request.method == "POST":
-        try:
-            validate_csrf(request.form.get("csrf_token"))
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({"success": False, "error": "User not found"}), 404
 
-            # Update user details
-            new_email = request.form.get("email", "").strip()
-            new_groups = request.form.get("groups", "").strip()
-            UserManager.update_user(username, email=new_email, groups=new_groups)
+        # ✅ Update allowed fields
+        for field in User.get_editable_user_fields():
+            if field == "groups":
+                raw = request.form.get("groups", "")
+                user.groups = [g.strip() for g in raw.split(",") if g.strip()]
+            elif field == "password":
+                raw_pass = request.form.get("password", "").strip()
+                if raw_pass:
+                    UserManager.set_password(user, raw_pass)
+            else:
+                setattr(user, field, request.form.get(field, "").strip())
 
-            flash("User updated successfully", "success")
-            return redirect(url_for("admin.user_list"))
+        db.session.commit()
+        return jsonify({"success": True})  # ✅ Important: return a valid JSON response
 
-        except Exception as e:
-            flash(str(e), "danger")
-
-    return render_template("admin/edit_user.html", user=user)
+    except Exception as e:
+        log.error(f"❌ Failed to update user: {str(e)}", exc_info=True)
+        return (
+            jsonify({"success": False, "error": str(e)}),
+            500,
+        )  # ✅ Always return something
 
 
 @admin_bp.route("/delete/<username>")
@@ -161,110 +183,173 @@ def delete_user(username):
         UserManager.delete_user(username)
         flash("User deleted successfully", "success")
     except Exception as e:
-        current_app.logger.error(f"User delete error: {str(e)}")
+        log.error(f"User delete error: {str(e)}", exc_info=True)
         flash("Error deleting user", "danger")
-    return redirect(url_for("admin.user_list"))
+    return redirect(url_for("admin.user_management"))
 
 
-@admin_bp.route("/idp-config", methods=["GET", "POST"])
+@admin_bp.route("/users")
 @admin_login_required
-def idp_config():
-    if request.method == "POST":
-        try:
-            current_config = IdPConfigManager.get_config() or {}
-
-            # Get SP data from form (corrected field names)
-            sp_entity_id = request.form.get("sp_entity_id", "").strip()
-            sp_acs_url = request.form.get("sp_acs_url", "").strip()
-
-            new_config = {
-                "entity_id": request.form.get("entity_id", "").strip(),
-                "sso_service_url": request.form.get("sso_service_url", "").strip(),
-                "signing_cert_path": request.form.get("cert_path", "").strip()
-                or current_config.get(
-                    "signing_cert_path", str(paths.cert_dir / "idp-cert.pem")
-                ),
-                "signing_key_path": request.form.get("key_path", "").strip()
-                or current_config.get(
-                    "signing_key_path", str(paths.cert_dir / "idp-key.pem")
-                ),
-                "trusted_sp": [],
+def user_management():
+    users = User.query.all()
+    users_list = []
+    for u in users:
+        users_list.append(
+            {
+                "username": u.username,
+                "email": u.email,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "groups": u.groups,
             }
+        )
 
-            # Add SP only if fields are filled
-            if sp_entity_id and sp_acs_url:
-                new_config["trusted_sp"].append(
-                    {"entity_id": sp_entity_id, "acs_url": sp_acs_url}
-                )
-
-            # Validate SP entries
-            for sp in new_config["trusted_sp"]:
-                if not valid_url(sp["entity_id"]) or not valid_url(sp["acs_url"]):
-                    flash("Invalid SP URL format", "danger")
-                    return redirect(url_for("admin.idp_config"))
-
-            # Validate required fields
-            if not all([new_config["entity_id"], new_config["sso_service_url"]]):
-                flash("Entity ID and SSO URL are required", "danger")
-                return redirect(url_for("admin.idp_config"))
-
-            # Generate and save config
-            idp_handler = IdPHandler()
-            config_xml = idp_handler.generate_config_xml(new_config)
-
-            config_path = paths.config_dir / "idps" / "idp-config.xml"
-            config_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(config_path, "w") as f:
-                f.write(config_xml)
-
-            flash("Configuration updated successfully", "success")
-            return redirect(url_for("admin.idp_config"))
-
-        except Exception as e:
-            current_app.logger.error(f"Config error: {str(e)}")
-            flash(f"Configuration update failed: {str(e)}", "danger")
-            return redirect(url_for("admin.idp_config"))
-
-    if request.method == "GET":
-        try:
-            config_path = paths.config_dir / "idps" / "idp-config.xml"
-            config_data = {}
-
-            if config_path.exists():
-                tree = etree.parse(str(config_path))
-                root = tree.getroot()
-
-                config_data = {
-                    "entity_id": root.get("entityID"),
-                    "sso_service_url": root.find(".//{*}SingleSignOnService").get(
-                        "Location"
-                    ),
-                    "cert_path": paths.cert_dir / "idp-cert.pem",
-                    "key_path": paths.cert_dir / "idp-key.pem",
-                    "trusted_sp": [
-                        {
-                            "entity_id": sp.find(".//{*}EntityID").text,
-                            "acs_url": sp.find(".//{*}AssertionConsumerService").get(
-                                "Location"
-                            ),
-                        }
-                        for sp in root.findall(".//{*}SPSSODescriptor")
-                    ],
-                }
-
-            return render_template("admin/idp_config.html", config=config_data)
-
-        except Exception as e:
-            current_app.logger.error(f"Config load error: {str(e)}")
-            flash("Error loading configuration", "danger")
-            return redirect(url_for("admin.user_list"))
+    fields = User.get_editable_user_fields()
+    return render_template(
+        "admin/user_management.html", users=users_list, user_fields=fields
+    )
 
 
-def valid_url(url):
-    """Validate URL format"""
-    try:
-        result = urlparse(url)
-        return all([result.scheme in ["http", "https"], result.netloc])
-    except ValueError:
-        return False
+@admin_bp.route("/api/user/<username>", methods=["GET"])
+@admin_login_required
+def get_user_data(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify(
+        {
+            "success": True,
+            "user": {  # ✅ FIXED: was "sp"
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "groups": user.groups,
+            },
+        }
+    )
+
+
+@admin_bp.route("/sp", methods=["GET"])
+@admin_login_required
+def list_sps():
+    sps = ServiceProvider.query.all()
+
+    # Serialize SPs for modal usage
+    sp_dicts = []
+    for sp in sps:
+        sp_dicts.append(
+            {
+                "id": sp.id,
+                "name": sp.name,
+                "entity_id": sp.entity_id,
+                "acs_url": sp.acs_url,
+                "attr_map": sp.attr_map or [],
+            }
+        )
+
+    fields = [
+        col.name for col in User.__table__.columns if col.name not in ["password"]
+    ]
+    return render_template(
+        "admin/sp_list.html", sps=sps, sp_dicts=sp_dicts, user_fields=fields
+    )
+
+
+@admin_bp.route("/sp/new", methods=["GET", "POST"])
+@admin_login_required
+def create_sp():
+    user_fields = [
+        col.name for col in User.__table__.columns if col.name != "password_hash"
+    ]
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        entity_id = request.form.get("entity_id")
+        acs_url = request.form.get("acs_url")
+
+        attr_map = []
+        index = 0
+        while True:
+            claim_name = request.form.get(f"claim_name_{index}")
+            claim_value = request.form.get(f"claim_value_{index}")
+            if not claim_name or not claim_value:
+                break
+            attr_map.append({"claim": claim_name, "value": claim_value})
+            index += 1
+
+        sp = ServiceProvider(
+            name=name,
+            entity_id=entity_id,
+            acs_url=acs_url,
+            attr_map=attr_map,
+        )
+        db.session.add(sp)
+        db.session.commit()
+        flash("Service Provider added successfully", "success")
+        return redirect(url_for("admin.list_sps"))
+
+    return render_template("admin/sp_new.html", user_fields=user_fields)
+
+
+@admin_bp.route("/sp/delete/<int:sp_id>", methods=["POST"])
+@admin_login_required
+def delete_sp(sp_id):
+    sp = ServiceProvider.query.get_or_404(sp_id)
+    db.session.delete(sp)
+    db.session.commit()
+    flash(f"Deleted Service Provider: {sp.name}", "success")
+    return redirect(url_for("admin.list_sps"))
+
+
+@admin_bp.route("/sp/edit/<int:sp_id>", methods=["GET", "POST"])
+@admin_login_required
+def edit_sp(sp_id):
+    sp = ServiceProvider.query.get_or_404(sp_id)
+
+    if request.method == "POST":
+        sp.name = request.form.get("name")
+        sp.entity_id = request.form.get("entity_id")
+        sp.acs_url = request.form.get("acs_url")
+
+        attr_map = []
+        index = 0
+        while True:
+            claim_name = request.form.get(f"claim_name_{index}")
+            claim_value = request.form.get(f"claim_value_{index}")
+            if not claim_name or not claim_value:
+                break
+            attr_map.append({"claim": claim_name, "value": claim_value})
+            index += 1
+
+        sp.attr_map = attr_map
+        db.session.commit()
+        flash("Service Provider updated successfully.", "success")
+        return redirect(url_for("admin.list_sps"))
+
+    user_fields = [
+        col.name for col in User.__table__.columns if col.name != "password_hash"
+    ]
+    return render_template("admin/sp_edit.html", sp=sp, user_fields=user_fields)
+
+
+@admin_bp.route("/api/sp/<int:sp_id>", methods=["GET"])
+@admin_login_required
+def get_sp_data(sp_id):
+    sp = ServiceProvider.query.get(sp_id)
+    if not sp:
+        return jsonify({"error": "Service Provider not found"}), 404
+
+    return jsonify(
+        {
+            "success": True,
+            "sp": {
+                "id": sp.id,
+                "name": sp.name,
+                "entity_id": sp.entity_id,
+                "acs_url": sp.acs_url,
+                "attr_map": sp.attr_map or [],
+            },
+        }
+    )

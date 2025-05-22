@@ -29,3 +29,19 @@ function updateSelectStyles() {
         sel.classList.toggle("text-light", isDark);
     });
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Ensure all Bootstrap modals clean up correctly
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('hidden.bs.modal', () => {
+            // Remove leftover backdrop if it wasn't removed
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
+            // Also remove modal-open class if still stuck
+            if (document.body.classList.contains('modal-open')) {
+                document.body.classList.remove('modal-open');
+                document.body.style = ''; // Clean any leftover overflow: hidden
+            }
+        });
+    });
+});

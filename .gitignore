@@ -9,7 +9,6 @@ __pycache__/
 # VSCODE
 .vscode
 
-
 # Distribution / packaging
 .Python
 build/

@@ -2,12 +2,20 @@ import os
 import subprocess
 from pathlib import Path
 from cryptography.hazmat.primitives import serialization
+
 from app import create_app
 from app.utils.logger_main import log
 
 BASE_DIR = Path(__file__).parent
 KEY_PATH = os.getenv("KEY_PATH") or str(BASE_DIR / "app" / "certs" / "idp-key.pem")
 CERT_PATH = os.getenv("CERT_PATH") or str(BASE_DIR / "app" / "certs" / "idp-cert.pem")
+
+GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN")
+if GLITCHTIP_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(dsn=GLITCHTIP_DSN, integrations=[FlaskIntegration()])
 
 
 def generate_certificates():

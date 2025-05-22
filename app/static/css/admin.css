@@ -15,3 +15,16 @@
 .navbar-brand img {
     filter: brightness(0) invert(1); /* white logo effect on dark bg */
 }
+
+
+/* Tailwind style (automatic) */
+.dark body {
+  background-color: #121212;
+  color: #f5f5f5;
+}
+
+/*  custom CSS: */
+html.dark body {
+  background-color: #121212;
+  color: #f5f5f5;
+}

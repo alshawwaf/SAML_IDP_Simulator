@@ -1,7 +1,7 @@
 <!-- Add Service Provider Modal -->
 <div class="modal fade" id="addSpModal" tabindex="-1" aria-labelledby="addSpModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content bg-light">
+    <div class="modal-content">
       <form method="POST" action="{{ url_for('admin.create_sp') }}">
         <div class="modal-header bg-darkblue text-white">
           <h5 class="modal-title" id="addSpModalLabel">Add New Service Provider</h5>
@@ -42,7 +42,6 @@
                 <td><input name="claim_name_0" class="form-control" value="emailaddress" required></td>
                 <td>
                   <select name="claim_value_0" class="form-select" required>
-                    
                     {% for field in user_fields %}
                       <option value="{{ field }}">{{ field }}</option>
                     {% endfor %}
@@ -60,7 +59,7 @@
           </div>
         </div>
 
-        <div class="modal-footer">
+        <div class="modal-footer bg-light">
           <button type="submit" class="btn btn-success">💾 Save</button>
         </div>
       </form>
@@ -71,17 +70,16 @@
 <!-- Edit Service Provider Modal -->
 <div class="modal fade" id="editSpModal" tabindex="-1" aria-labelledby="editSpModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content bg-light">
-      
+    <div class="modal-content">
       <form method="POST" action="/admin/sp/edit/0" id="edit-sp-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="modal-header bg-darkblue text-white">
           <h5 class="modal-title" id="editSpModalLabel">Edit Service Provider</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
         <div class="modal-body">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
           <div class="mb-3">
             <label class="form-label">Name</label>
             <input type="text" name="name" id="edit_sp_name" class="form-control" required>
@@ -118,14 +116,10 @@
           </div>
         </div>
 
-        <div class="modal-footer">
+        <div class="modal-footer bg-light">
           <button type="submit" class="btn btn-success">💾 Save Changes</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-
-
-
-

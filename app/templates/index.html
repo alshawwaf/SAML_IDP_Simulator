@@ -7,18 +7,18 @@
     <div class="container text-center">
         <img src="{{ url_for('static', filename='check-point-logo.png') }}" alt="Check Point" class="mb-4 hero-logo">
         <h1 class="display-5 fw-bold">SAML 2.0 Identity Provider Simulator</h1>
-        <p class="lead opacity-75">Test and simulate secure SAML-based integrations.</p>
+        <p class="fst-italic text-info">Test and simulate secure SAML-based integrations.</p>
 
         <!-- Primary Actions -->
         <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mt-4">
-            <a href="/download-metadata" class="btn btn-outline-light btn-lg px-4 py-2">
+            <a href="/download-metadata" class="btn btn-outline-info btn-lg px-4 py-2">
                 <i class="bi bi-download me-2"></i> Download Metadata
             </a>
             <button type="button" id="viewMetadataBtn" class="btn btn-outline-info btn-lg px-4 py-2" data-bs-toggle="modal" data-bs-target="#metadataModal">
                 <i class="bi bi-file-earmark-code me-2"></i> View Metadata
             </button>
-            <a href="/download-cert" class="btn btn-outline-info btn-lg px-4 py-2">
-                <i class="bi bi-shield-lock me-2"></i> Certificate
+            <a href="/download-cert" class="btn btn-outline-info btn-lg px-4 py-2 ">
+                <i class="bi bi-shield-lock me-2"></i> Download Certificate
             </a>
         </div>
     </div>

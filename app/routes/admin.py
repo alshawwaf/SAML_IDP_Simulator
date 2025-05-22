@@ -153,7 +153,7 @@ def update_user():
         if not user:
             return jsonify({"success": False, "error": "User not found"}), 404
 
-        # ✅ Update allowed fields
+        # Update allowed fields
         for field in User.get_editable_user_fields():
             if field == "groups":
                 raw = request.form.get("groups", "")
@@ -166,14 +166,14 @@ def update_user():
                 setattr(user, field, request.form.get(field, "").strip())
 
         db.session.commit()
-        return jsonify({"success": True})  # ✅ Important: return a valid JSON response
+        return jsonify({"success": True})
 
     except Exception as e:
         log.error(f"❌ Failed to update user: {str(e)}", exc_info=True)
         return (
             jsonify({"success": False, "error": str(e)}),
             500,
-        )  # ✅ Always return something
+        )  # Always return something
 
 
 @admin_bp.route("/delete/<username>")
@@ -220,7 +220,7 @@ def get_user_data(username):
     return jsonify(
         {
             "success": True,
-            "user": {  # ✅ FIXED: was "sp"
+            "user": { 
                 "username": user.username,
                 "email": user.email,
                 "first_name": user.first_name,
@@ -268,7 +268,9 @@ def create_sp():
         name = request.form.get("name")
         entity_id = request.form.get("entity_id")
         acs_url = request.form.get("acs_url")
-
+        existing_sp = ServiceProvider.query.filter_by(entity_id=entity_id).first()
+        if existing_sp:
+            return jsonify({"error": "An SP with this Entity ID already exists."}), 400
         attr_map = []
         index = 0
         while True:

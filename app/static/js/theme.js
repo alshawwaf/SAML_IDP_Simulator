@@ -30,7 +30,10 @@ function updateSelectStyles() {
     });
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5c89279eb89179b25c79c1566931e1ac6e45589e
 document.addEventListener("DOMContentLoaded", () => {
     // Ensure all Bootstrap modals clean up correctly
     document.querySelectorAll('.modal').forEach(modal => {

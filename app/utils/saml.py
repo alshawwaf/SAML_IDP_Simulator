@@ -184,6 +184,9 @@ class IdPHandler:
             # Add groups to assertion
             user["groups"] = db_user.groups
             user["email"] = db_user.email
+            user["first_name"] = db_user.first_name
+            user["last_name"] = db_user.last_name
+
             if not self.validate_sp(sp_entity_id):
                 raise ValueError(f"Untrusted SP: {sp_entity_id}")
 
@@ -334,13 +337,28 @@ class IdPHandler:
             claim = mapping["claim"]
             value_key = mapping["value"]
 
-            value = user.get(value_key) or user["attributes"].get(value_key)
+            value = user.get(value_key) or user.get("attributes", {}).get(value_key)
+            if value is None:
+                log.warning(
+                    f"Attribute '{claim}' → field '{value_key}' not found in user: {user}"
+                )
+
             if value is None:
                 log.warning(f"User field '{value_key}' not found for claim '{claim}'")
 
             if isinstance(value, list):
+                # Create a single attribute element with multiple values
+                attribute = etree.SubElement(
+                    attr_stmt,
+                    "{urn:oasis:names:tc:SAML:2.0:assertion}Attribute",
+                    Name=escape(claim),
+                    NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+                )
                 for v in value:
-                    self._add_attribute(attr_stmt, claim, v)
+                    etree.SubElement(
+                        attribute,
+                        "{urn:oasis:names:tc:SAML:2.0:assertion}AttributeValue",
+                    ).text = escape(str(v))
             elif value is not None:
                 self._add_attribute(attr_stmt, claim, value)
 

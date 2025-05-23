@@ -233,8 +233,8 @@ pre#metadataContent {
 
 #metadataContent {
   font-family: 'Courier New', Courier, monospace;
-  color: #d8d8d8;
-  background-color: #16191f;
+  color: #0f0f0f;
+  background-color: #dddfe2;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -333,4 +333,9 @@ code[class*="language-"]::selection {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+.modal-body {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
 }

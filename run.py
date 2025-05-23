@@ -2,7 +2,6 @@ import os
 import subprocess
 from pathlib import Path
 from cryptography.hazmat.primitives import serialization
-
 from app import create_app
 from app.utils.logger_main import log
 

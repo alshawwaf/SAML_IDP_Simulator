@@ -267,6 +267,10 @@ def create_sp():
     if request.method == "POST":
         name = request.form.get("name")
         entity_id = request.form.get("entity_id")
+        existing_sp = ServiceProvider.query.filter_by(entity_id=entity_id).first()
+        if existing_sp:
+            return jsonify({"error": "An SP with this Entity ID already exists."}), 400
+
         acs_url = request.form.get("acs_url")
 
         attr_map = []

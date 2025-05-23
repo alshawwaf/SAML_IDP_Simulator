@@ -34,7 +34,6 @@ pytz==2025.2
 PyYAML==6.0.2
 requests==2.32.3
 rich==13.9.4
-sentry-sdk==2.29.1
 signxml==4.0.3
 six==1.17.0
 SQLAlchemy==2.0.40

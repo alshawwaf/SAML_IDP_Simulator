@@ -28,7 +28,7 @@ class IdPConfigManager:
             ],
         }
 
-        log.info(f"✅ Loaded config with cert: {cert_path}, key: {key_path}")
+        # log.debug(f"✅ Loaded config with cert: {cert_path}, key: {key_path}")
         return config
 
     @staticmethod

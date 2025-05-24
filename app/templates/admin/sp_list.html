@@ -27,19 +27,21 @@
         <td>{{ sp.name }}</td>
         <td class="text-break">{{ sp.entity_id }}</td>
         <td class="text-break">{{ sp.acs_url }}</td>
-<td class="align-middle" style="max-width: 280px;">
-  {% if sp.attr_map %}
-    <div class="d-flex flex-wrap gap-1">
-      {% for mapping in sp.attr_map %}
-        <span class="px-2 py-1 rounded text-light bg-darkblue small">
-          {{ mapping.claim }} → {{ mapping.value }}
-        </span>
-      {% endfor %}
-    </div>
-  {% else %}
-    <span class="text-muted">No mappings</span>
-  {% endif %}
-</td>
+
+        <td class="align-middle text-break">
+        {% if sp.attr_map %}
+          <div class="d-flex flex-column gap-1">
+            {% for mapping in sp.attr_map %}
+              <div class="px-2 py-1 rounded text-light bg-darkblue small w-100">
+                <strong>{{ mapping.claim }}</strong> → 
+                <span class="d-inline-block text-break">{{ mapping.value }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <span class="text-muted">No mappings</span>
+        {% endif %}
+      </td>
 
         <td>
           <button class="btn btn-sm btn-outline-primary edit-sp-btn"

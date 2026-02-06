@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Welcome to SAML IdP Simulator{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero text-center pt-4 pb-0">
+    <div class="container py-0 mt-0">
+        <div class="badge bg-primary bg-opacity-20 text-white mb-2 px-4 py-2 border border-primary border-opacity-30 small text-uppercase tracking-widest">SAML 2.0 Engine</div>
+        <h1 class="text-gradient display-3 fw-bold mb-2" style="line-height: 1.1;">Identity Provider<br>Made Simple.</h1>
+        <p class="text-white opacity-50 fs-4 mb-3 mx-auto" style="max-width: 800px;">A premium environment to test, simulate, and debug secure SAML-based integrations with precision.</p>
+
+        <!-- Primary Actions -->
+        <div class="d-flex flex-wrap justify-content-center gap-4 pt-2">
+            <a href="/download-metadata" class="btn btn-primary btn-lg shadow-lg">
+                <i class="bi bi-download"></i> Download Metadata
+            </a>
+            <button type="button" id="viewMetadataBtn" class="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#metadataModal">
+                <i class="bi bi-code-slash"></i> View XML
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="card h-100 p-5 border-0 bg-transparent">
+                    <div class="mb-4 d-inline-flex p-3 rounded-4 bg-primary bg-opacity-10 text-primary" style="width: fit-content;">
+                        <i class="bi bi-layers-half fs-2"></i>
+                    </div>
+                    <h3 class="h4 text-white mb-3">SP Integration</h3>
+                    <p class="text-white opacity-50 mb-0">Seamlessly add and manage Service Providers. Configure claims, attributes, and response parameters in real-time.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-5 border-0 bg-transparent">
+                    <div class="mb-4 d-inline-flex p-3 rounded-4 bg-primary bg-opacity-10 text-primary" style="width: fit-content;">
+                        <i class="bi bi-people fs-2"></i>
+                    </div>
+                    <h3 class="h4 text-white mb-3">User Management</h3>
+                    <p class="text-white opacity-50 mb-0">Control your testing environment with fine-grained user management and group assignments for robust simulation.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-5 border-0 bg-transparent">
+                    <div class="mb-4 d-inline-flex p-3 rounded-4 bg-primary bg-opacity-10 text-primary" style="width: fit-content;">
+                        <i class="bi bi-fingerprint fs-2"></i>
+                    </div>
+                    <h3 class="h4 text-white mb-3">Security First</h3>
+                    <p class="text-white opacity-50 mb-0">Built-in certificate generation and secure handling of SAML assertions to ensure your integrations remain safe.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Modal -->
+<div class="modal fade" id="metadataModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-code-slash me-2"></i>SAML Metadata XML</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-3">
+        <pre id="metadataContent" class="xml-content m-0"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-primary" id="copyMetadataBtn">
+            <i class="bi bi-clipboard me-1"></i>Copy XML
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Styles -->
+
+{% endblock %}
+
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='js/metadata.js') }}"></script>
+{% endblock %}

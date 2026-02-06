@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}SAML IdP{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+
+</head>
+<body class="dark-mode">
+<div class="landing-bg"></div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <span class="fs-3 text-gradient fw-bold">SAML IDP</span>
+    </a>
+
+    <div class="navbar-nav ms-auto align-items-center gap-4 d-none d-lg-flex">
+      {% if session.get('admin_logged_in') %}
+      <a href="{{ url_for('admin.user_management') }}" class="nav-link">Users</a>
+      <a href="{{ url_for('admin.list_sps') }}" class="nav-link">Service Providers</a>
+      <a href="{{ url_for('admin.idp_config') }}" class="nav-link">
+        <i class="bi bi-gear-wide-connected me-1"></i>IDP Config
+      </a>
+      <a href="{{ url_for('admin.logout') }}" class="btn btn-outline-danger btn-sm px-4">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+      </a>
+      {% else %}
+      <a href="{{ url_for('admin.login') }}" class="btn btn-primary btn-sm px-4">
+        <i class="bi bi-person-lock me-1"></i>Admin Login
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<main class="container py-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="row justify-content-center">
+        <div class="col-md-5">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show animate-fade-in p-2 px-3 mb-3 border-0 glass shadow-glow">
+              <div class="d-flex align-items-center gap-2">
+                  <div class="bg-{{ category if category != 'error' else 'danger' }} bg-opacity-20 p-1 rounded-circle d-flex">
+                      <i class="bi bi-{{ 'check-circle-fill' if category == 'success' else 'exclamation-circle-fill' }} small"></i>
+                  </div>
+                  <div class="flex-grow-1 small">
+                      <span class="fw-bold text-uppercase opacity-50 me-1">{{ category if category != 'error' else 'Note' }}:</span>
+                      <span class="text-white">{{ message }}</span>
+                  </div>
+              </div>
+              <button type="button" class="btn-close small p-2" data-bs-dismiss="alert" aria-label="Close" style="font-size: 0.6rem;"></button>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  {% endwith %}
+  <div class="animate-fade-in">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vkbeautify.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/prism.js') }}"></script>
+<script src="{{ url_for('static', filename='js/prism-markup.min.js') }}"></script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

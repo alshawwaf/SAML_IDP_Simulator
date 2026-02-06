@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-gradient mb-0">
+            <i class="bi bi-people-fill me-2"></i>User Management
+        </h2>
+    </div>
+
+    <!-- Add User Form -->
+    <div class="card glass border-0 mb-4">
+        <div class="card-body">
+            <h6 class="text-white mb-3"><i class="bi bi-person-plus me-2"></i>Add New User</h6>
+            <form method="POST" action="{{ url_for('admin.add_user') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Username</label>
+                        <input type="text" name="username" class="form-control bg-dark text-white border-secondary" 
+                               placeholder="Enter username" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Email</label>
+                        <input type="email" name="email" class="form-control bg-dark text-white border-secondary" 
+                               placeholder="Enter email" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Password</label>
+                        <input type="password" name="password" class="form-control bg-dark text-white border-secondary" 
+                               placeholder="Enter password" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Groups</label>
+                        <input type="text" name="groups" class="form-control bg-dark text-white border-secondary" 
+                               placeholder="e.g. admin,users">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card glass border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr class="border-bottom border-secondary">
+                            <th class="px-4 py-3">Username</th>
+                            <th class="px-4 py-3">Email</th>
+                            <th class="px-4 py-3">Groups</th>
+                            <th class="px-4 py-3 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr class="border-bottom border-secondary border-opacity-25">
+                            <td class="px-4 py-3">
+                                <i class="bi bi-person-circle me-2 text-primary"></i>{{ user.username }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <small class="text-muted">{{ user.email }}</small>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if user.groups %}
+                                    {% for group in user.groups %}
+                                    <span class="badge bg-secondary me-1">{{ group }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                <span class="text-muted opacity-50">No groups</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin.edit_user', username=user.username) }}"
+                                       class="btn btn-outline-primary btn-sm">
+                                       <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.delete_user', username=user.username) }}"
+                                       class="btn btn-outline-danger btn-sm"
+                                       onclick="return confirm('Delete this user?')">
+                                       <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                                No users found. Add your first user above.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

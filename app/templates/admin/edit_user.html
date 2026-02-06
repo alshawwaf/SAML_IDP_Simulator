@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card glass border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-person-lines-fill me-2"></i>Edit User: <strong>{{ user.username }}</strong>
+            </h5>
+            <a href="{{ url_for('admin.user_management') }}" class="btn btn-sm btn-outline-light">
+                <i class="bi bi-arrow-left me-1"></i>Back to Users
+            </a>
+        </div>
+
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="user_id" class="form-label">User ID</label>
+                        <input type="text" class="form-control" id="user_id" value="{{ user.user_id or '' }}" disabled>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" value="{{ user.username }}" disabled tabindex="-1">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" id="email" value="{{ user.email }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="edit_password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="edit_password" name="password" placeholder="Leave blank to keep current">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" name="first_name" class="form-control" id="first_name" value="{{ user.first_name or '' }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" name="last_name" class="form-control" id="last_name" value="{{ user.last_name or '' }}">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label for="groups" class="form-label">Groups</label>
+                        <input type="text" name="groups" class="form-control" value="{{ user.groups|join(', ') if user.groups else '' }}">
+                        <small class="text-muted">Comma-separated (e.g. saml_users, admin)</small>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-save me-1"></i>Save Changes
+                    </button>
+                    <a href="{{ url_for('admin.user_management') }}" class="btn btn-secondary ms-2">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

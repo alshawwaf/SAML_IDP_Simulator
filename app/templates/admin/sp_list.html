@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Service Providers{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-gradient mb-0">
+            <i class="bi bi-building me-2"></i>Service Providers
+        </h2>
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSpModal">
+                <i class="bi bi-plus-lg me-1"></i>Add Service Provider
+            </button>
+        </div>
+    </div>
+
+    <div class="card glass">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="px-3 py-3" style="width: 15%;">Name</th>
+                            <th class="px-3 py-3" style="width: 25%;">Entity ID</th>
+                            <th class="px-3 py-3" style="width: 25%;">ACS URL</th>
+                            <th class="px-3 py-3" style="width: 20%;">Attribute Mappings</th>
+                            <th class="px-3 py-3 text-end" style="width: 15%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sp in sps %}
+                        <tr>
+                            <td class="px-3 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-primary bg-opacity-20 p-2 me-2 flex-shrink-0">
+                                        <i class="bi bi-building text-primary"></i>
+                                    </div>
+                                    <span class="fw-medium text-white">{{ sp.name or 'Unnamed' }}</span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-3">
+                                <code class="small d-inline-block" style="word-break: break-all;">{{ sp.entity_id }}</code>
+                            </td>
+                            <td class="px-3 py-3">
+                                <span class="text-light small d-inline-block" style="word-break: break-all;">{{ sp.acs_url }}</span>
+                            </td>
+                            <td class="px-3 py-3">
+                                {% if sp.attr_map %}
+                                    {% for attr in sp.attr_map[:3] %}
+                                    <span class="badge bg-secondary me-1 mb-1">{{ attr.claim }}</span>
+                                    {% endfor %}
+                                    {% if sp.attr_map|length > 3 %}
+                                    <span class="badge bg-dark mb-1">+{{ sp.attr_map|length - 3 }} more</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="text-muted">No mappings</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-3 text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info view-xml-btn"
+                                            data-sp-id="{{ sp.id }}"
+                                            data-sp-name="{{ sp.name }}"
+                                            title="View XML Metadata">
+                                        <i class="bi bi-code-slash"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary edit-sp-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editSpModal"
+                                            data-sp-id="{{ sp.id }}"
+                                            title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="{{ url_for('admin.delete_sp', sp_id=sp.id) }}" 
+                                       class="btn btn-outline-danger"
+                                       onclick="return confirm('Are you sure you want to delete this Service Provider?')"
+                                       title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                                <p class="mb-2">No Service Providers configured yet</p>
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addSpModal">
+                                    <i class="bi bi-plus-lg me-1"></i>Add your first Service Provider
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Card -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card glass border-0">
+                <div class="card-body text-center">
+                    <div class="fs-2 text-info fw-bold">{{ sps|length }}</div>
+                    <div class="text-muted small">Total Service Providers</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "admin/modals/sp_modals.html" %}
+
+<!-- SP XML Metadata Modal -->
+<div class="modal fade" id="spXmlModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-code-slash me-2"></i>SP Metadata: <span id="spXmlName"></span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-3">
+        <pre id="spXmlContent" class="xml-content m-0"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-primary" id="copySpXmlBtn">
+            <i class="bi bi-clipboard me-1"></i>Copy XML
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/vkbeautify.js') }}"></script>
+<script>
+const userFields = {{ user_fields|tojson }};
+
+// XML Syntax highlighting function
+function highlightXML(xml) {
+    let escaped = xml
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    
+    escaped = escaped
+        .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span style="color: #6a737d;">$1</span>')
+        .replace(/(&lt;\?[\s\S]*?\?&gt;)/g, '<span style="color: #d2a8ff;">$1</span>')
+        .replace(/(&lt;\/?)([\w:-]+)/g, '$1<span style="color: #7ee787;">$2</span>')
+        .replace(/([\w:-]+)(=)(&quot;)/g, '<span style="color: #79c0ff;">$1</span>$2$3')
+        .replace(/(&quot;)(.*?)(&quot;)/g, '$1<span style="color: #a5d6ff;">$2</span>$3')
+        .replace(/(&gt;)/g, '<span style="color: #7ee787;">$1</span>')
+        .replace(/(&lt;)/g, '<span style="color: #7ee787;">$1</span>');
+    
+    return escaped;
+}
+
+let rawSpXml = "";
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle View XML button click
+    document.querySelectorAll('.view-xml-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const spId = this.dataset.spId;
+            const spName = this.dataset.spName;
+            const xmlContent = document.getElementById('spXmlContent');
+            const modal = new bootstrap.Modal(document.getElementById('spXmlModal'));
+            
+            document.getElementById('spXmlName').textContent = spName;
+            xmlContent.innerHTML = '<span class="text-muted">Loading...</span>';
+            modal.show();
+            
+            try {
+                const response = await fetch(`/admin/api/service-providers/${spId}/xml`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const xml = await response.text();
+                const formatted = (typeof vkbeautify !== "undefined") ? vkbeautify.xml(xml) : xml;
+                rawSpXml = formatted;
+                xmlContent.innerHTML = highlightXML(formatted);
+            } catch (error) {
+                xmlContent.innerHTML = '<span class="text-danger">⚠️ Failed to load metadata.</span>';
+                console.error('Error loading SP XML:', error);
+            }
+        });
+    });
+    
+    // Copy SP XML button
+    document.getElementById('copySpXmlBtn').addEventListener('click', function() {
+        navigator.clipboard.writeText(rawSpXml)
+            .then(() => {
+                this.innerHTML = '<i class="bi bi-clipboard-check me-1"></i>Copied!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy XML';
+                }, 2000);
+            })
+            .catch(err => console.error("Copy failed:", err));
+    });
+
+    // Handle Edit SP button click
+    document.querySelectorAll('.edit-sp-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const spId = this.dataset.spId;
+            try {
+                const response = await fetch(`/admin/api/service-providers/${spId}`);
+                const sp = await response.json();
+                
+                // Update form action
+                document.getElementById('edit-sp-form').action = `/admin/service-providers/${sp.id}/edit`;
+                
+                // Fill form fields
+                document.getElementById('edit_sp_name').value = sp.name || '';
+                document.getElementById('edit_sp_entity_id').value = sp.entity_id || '';
+                document.getElementById('edit_sp_acs_url').value = sp.acs_url || '';
+                
+                // Fill attribute mappings
+                const claimsBody = document.getElementById('edit-claims-body');
+                claimsBody.innerHTML = '';
+                
+                if (sp.attr_map && sp.attr_map.length > 0) {
+                    sp.attr_map.forEach((attr, index) => {
+                        addClaimRow(claimsBody, index, attr.claim, attr.field, true);
+                    });
+                } else {
+                    addClaimRow(claimsBody, 0, 'emailaddress', 'email', true);
+                }
+            } catch (error) {
+                console.error('Error loading SP data:', error);
+            }
+        });
+    });
+    
+    // Add claim button for Add modal
+    let addClaimIndex = 1;
+    document.getElementById('add-claim-btn').addEventListener('click', function() {
+        const tbody = document.getElementById('claims-body');
+        addClaimRow(tbody, addClaimIndex++, '', 'email', false);
+    });
+    
+    // Add claim button for Edit modal
+    let editClaimIndex = 0;
+    document.getElementById('edit-add-claim-btn').addEventListener('click', function() {
+        const tbody = document.getElementById('edit-claims-body');
+        const currentRows = tbody.querySelectorAll('tr').length;
+        addClaimRow(tbody, currentRows, '', 'email', true);
+    });
+    
+    // Remove claim button delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-claim')) {
+            const row = e.target.closest('tr');
+            const tbody = row.closest('tbody');
+            if (tbody.querySelectorAll('tr').length > 1) {
+                row.remove();
+                reindexClaims(tbody);
+            }
+        }
+    });
+});
+
+function addClaimRow(tbody, index, claimName, fieldValue, isEdit) {
+    const prefix = isEdit ? '' : '';
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td><input name="claim_name_${index}" class="form-control" value="${claimName}" required></td>
+        <td>
+            <select name="claim_value_${index}" class="form-select" required>
+                ${userFields.map(f => `<option value="${f}" ${f === fieldValue ? 'selected' : ''}>${f}</option>`).join('')}
+            </select>
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-claim"><i class="bi bi-trash"></i></button>
+        </td>
+    `;
+    tbody.appendChild(row);
+}
+
+function reindexClaims(tbody) {
+    tbody.querySelectorAll('tr').forEach((row, index) => {
+        row.querySelector('input[name^="claim_name_"]').name = `claim_name_${index}`;
+        row.querySelector('select[name^="claim_value_"]').name = `claim_value_${index}`;
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Edit Service Provider{% endblock %}
+
+{% block content %}
+<div class="card mt-4">
+  <div class="card-header bg-darkblue text-white d-flex justify-content-between align-items-center">
+    <h6 class="mb-0"><i class="bi bi-pencil-square me-2"></i> Edit Service Provider</h6>
+    <a href="{{ url_for('admin.list_sps') }}" class="btn btn-sm btn-light">← Back to List</a>
+  </div>
+
+  <div class="card-body">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- SP Fields -->
+      <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input type="text" name="name" value="{{ sp.name }}" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Entity ID</label>
+        <input type="text" name="entity_id" value="{{ sp.entity_id }}" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">ACS URL</label>
+        <input type="text" name="acs_url" value="{{ sp.acs_url }}" class="form-control" required>
+      </div>
+
+      <!-- Attribute Mapping -->
+      <h5 class="mt-4">Attribute Mapping</h5>
+      <p class="text-muted mb-2">Map user fields to claims expected by this SP.</p>
+
+      <table id="claims" class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Claim Name</th>
+            <th>User Field</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="claims-body">
+          {% for mapping in sp.attr_map or [] %}
+          <tr>
+            <td>
+              <input name="claim_name_{{ loop.index0 }}" value="{{ mapping.claim }}" class="form-control" required>
+            </td>
+            <td>
+              <select name="claim_value_{{ loop.index0 }}" class="form-select" required>
+                {% for field in user_fields %}
+                <option value="{{ field }}" {% if mapping.value == field %}selected{% endif %}>{{ field }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="text-center">
+              <button type="button" class="btn btn-sm btn-outline-danger remove-claim">🗑</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+
+      </table>
+
+      <div class="mb-3">
+        <button type="button" class="btn btn-outline-primary btn-sm" id="add-claim-btn">➕ Add Claim</button>
+      </div>
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-save me-1"></i> Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    const USER_FIELDS = {{ user_fields | tojson | safe }};
+  </script>
+  <script src="{{ url_for('static', filename='js/sp-claims.js') }}"></script>
+{% endblock %}

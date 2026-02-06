@@ -1,0 +1,394 @@
+/* === Final Dev Hub Aesthetic: Pink & Black (Zero Blue) === */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Absolute black background */
+  --bg-deep: #000000;
+  --bg-dark: #050505;
+  --bg-surface: #0a0a0a;
+  --bg-elevated: #111111;
+  
+  /* Aggressive Pink/Magenta palette - ZERO BLUE */
+  --primary: #ff0080; /* Hot Pink */
+  --primary-light: #ff66b2;
+  --primary-glow: rgba(255, 0, 128, 0.4);
+  --secondary: #ff00ff; /* Magenta */
+  --secondary-light: #ff80ff;
+  --accent: #8b5cf6; /* Vibrant Violet (minimal) */
+  
+  --text-primary: #ffffff;
+  --text-secondary: #e5e5e5;
+  --text-muted: #888888;
+  
+  --radius-xl: 24px;
+}
+
+body {
+  background-color: var(--bg-deep) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.landing-bg {
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 0, 128, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(255, 0, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 0% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    var(--bg-deep);
+  z-index: -1;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+.navbar {
+  background: rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--radius-xl);
+  margin: 1rem 1.5rem;
+  padding: 0.875rem 1.5rem;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--radius-xl);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  border-color: var(--primary) !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 20px var(--primary-glow) !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 2rem !important;
+}
+
+.btn-outline-light {
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: transparent !important;
+    border-radius: 12px !important;
+    color: white !important;
+}
+
+.btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: var(--primary) !important;
+}
+
+/* Bootstrap Utility Overrides - ZERO BLUE POLICY */
+.text-primary, .text-info, .text-cyan { color: var(--primary-light) !important; }
+.text-secondary, .text-magenta { color: var(--secondary-light) !important; }
+.bg-primary, .bg-info, .bg-cyan { background-color: var(--primary) !important; }
+.bg-secondary, .bg-magenta { background-color: var(--secondary) !important; }
+.bg-light { background-color: rgba(255, 255, 255, 0.05) !important; color: white !important; }
+.border-primary, .border-info { border-color: var(--primary-light) !important; }
+.border-secondary { border-color: var(--secondary-light) !important; }
+
+/* Global Glow / Shadow purge */
+* {
+    box-shadow: none !important;
+}
+.shadow-lg, .shadow-sm, .shadow {
+    box-shadow: 0 10px 40px rgba(255, 0, 128, 0.1) !important;
+}
+
+/* Nav links */
+.nav-link {
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+    color: var(--primary) !important;
+}
+/* Modal Styling - Dark & Glassy */
+.modal-content {
+    background: rgba(10, 10, 10, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 2px solid rgba(255, 0, 128, 0.4) !important;
+    border-radius: var(--radius-xl) !important;
+    color: white !important;
+}
+
+
+.modal-header, .modal-footer {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.modal-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    color: var(--primary-light);
+}
+
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* XML Modal Pre-tag Refinement */
+#metadataContent, .xml-content {
+    background: #0a0a0a !important;
+    color: #e6e6e6 !important;
+    padding: 1.25rem !important;
+    border-radius: 8px;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    word-break: break-all !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Consolas, monospace !important;
+    font-size: 13px !important;
+    line-height: 1.7 !important;
+    letter-spacing: 0.3px !important;
+    border: 1px solid rgba(255, 0, 128, 0.3) !important;
+    max-height: 65vh !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+}
+
+/* Scrollbar styling for XML content */
+#metadataContent::-webkit-scrollbar,
+.xml-content::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+#metadataContent::-webkit-scrollbar-track,
+.xml-content::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 5px;
+}
+
+#metadataContent::-webkit-scrollbar-thumb,
+.xml-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 0, 128, 0.5);
+    border-radius: 5px;
+}
+
+#metadataContent::-webkit-scrollbar-thumb:hover,
+.xml-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 0, 128, 0.7);
+}
+
+/* XML Modal styling */
+.modal-content.bg-dark {
+    background: #111 !important;
+    border: 1px solid rgba(255, 0, 128, 0.2);
+}
+
+.modal-content.bg-dark .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-content.bg-dark .modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Alert Styling Refinement */
+.alert {
+    background: rgba(255, 0, 128, 0.1) !important;
+    border: 1px solid rgba(255, 0, 128, 0.2) !important;
+    color: white !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(10px);
+}
+
+.alert-danger {
+    background: rgba(220, 53, 69, 0.1) !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
+}
+
+.alert-success {
+    background: rgba(25, 135, 84, 0.1) !important;
+    border-color: rgba(25, 135, 84, 0.3) !important;
+}
+
+/* Form Label Refinement */
+.form-label {
+    color: var(--primary-light) !important;
+    font-weight: 600 !important;
+    opacity: 0.9;
+}
+
+/* Glass helper */
+.glass {
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 0, 128, 0.3) !important;
+    border-radius: var(--radius-xl) !important;
+    overflow: hidden !important;
+}
+
+/* Table Styling - Dark Theme */
+.table-dark {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: var(--text-primary) !important;
+    --bs-table-border-color: rgba(255, 255, 255, 0.1) !important;
+    --bs-table-hover-bg: rgba(255, 0, 128, 0.08) !important;
+    --bs-table-hover-color: var(--text-primary) !important;
+    margin-bottom: 0 !important;
+}
+
+.table-dark thead {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.table-dark thead th {
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    white-space: nowrap !important;
+}
+
+.table-dark tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.table-dark tbody td {
+    background: transparent !important;
+    vertical-align: middle !important;
+    border: none !important;
+    color: var(--text-primary) !important;
+}
+
+/* Card with table - proper alignment */
+.card .table-responsive {
+    border-radius: 0 !important;
+    overflow-x: auto !important;
+    margin: 0 !important;
+}
+
+.card.glass {
+    overflow: hidden !important;
+}
+
+.card.glass .card-body.p-0 {
+    padding: 0 !important;
+}
+
+/* Muted text should still be visible */
+.text-muted, small.text-muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Table layout for SP list */
+.table {
+    table-layout: auto !important;
+    width: 100% !important;
+}
+
+/* Form control styling for dark theme */
+.form-control, .form-select {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: var(--text-primary) !important;
+    border-radius: 8px !important;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px rgba(255, 0, 128, 0.2) !important;
+    color: var(--text-primary) !important;
+}
+
+.form-control::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.6 !important;
+}
+
+/* Badge styling */
+.badge.bg-secondary {
+    background: rgba(255, 0, 128, 0.2) !important;
+    color: var(--primary-light) !important;
+    border: 1px solid rgba(255, 0, 128, 0.3) !important;
+}
+
+.badge.bg-dark {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-muted) !important;
+}
+
+/* Code styling */
+code {
+    background: rgba(255, 0, 128, 0.1) !important;
+    color: var(--primary-light) !important;
+    padding: 0.2em 0.5em !important;
+    border-radius: 4px !important;
+    font-size: 0.85em !important;
+}
+
+/* Button group outline styling */
+.btn-outline-primary {
+    border-color: var(--primary) !important;
+    color: var(--primary-light) !important;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary) !important;
+    color: white !important;
+}
+
+.btn-outline-danger {
+    border-color: #dc3545 !important;
+    color: #ff6b7a !important;
+}
+
+.btn-outline-danger:hover {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+.btn-outline-warning {
+    border-color: #ffc107 !important;
+    color: #ffc107 !important;
+}
+
+.btn-outline-warning:hover {
+    background: #ffc107 !important;
+    color: #000 !important;
+}
+
+/* Stats card fix */
+.card.glass .card-body.text-center {
+    padding: 1.5rem !important;
+}
+
+/* Form text helper */
+.form-text {
+    color: var(--text-muted) !important;
+    opacity: 0.7 !important;
+}

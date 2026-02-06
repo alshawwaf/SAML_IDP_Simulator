@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}IDP Configuration{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-gradient mb-0">
+            <i class="bi bi-gear-wide-connected me-2"></i>IDP Configuration
+        </h2>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <!-- Identity Provider Settings -->
+        <div class="card glass border-0 mb-4">
+            <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
+                <h5 class="mb-0 text-white">
+                    <i class="bi bi-shield-check me-2 text-primary"></i>Identity Provider Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">Entity ID</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" 
+                               name="entity_id" value="{{ config.IDP_ENTITY_ID }}" required>
+                        <small class="text-muted">Unique identifier for your IdP</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">SSO Service URL</label>
+                        <input type="url" class="form-control bg-dark text-white border-secondary" 
+                               name="sso_service_url" value="{{ config.SSO_SERVICE_URL }}" required>
+                        <small class="text-muted">Your IdP's SSO endpoint</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificate Information -->
+        <div class="card glass border-0 mb-4">
+            <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
+                <h5 class="mb-0 text-white">
+                    <i class="bi bi-file-earmark-lock me-2 text-success"></i>Certificate Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">Certificate Path</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" 
+                               name="cert_path" value="{{ config.CERT_PATH }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted">Private Key Path</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" 
+                               name="key_path" value="{{ config.KEY_PATH }}" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server Settings -->
+        <div class="card glass border-0 mb-4">
+            <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
+                <h5 class="mb-0 text-white">
+                    <i class="bi bi-hdd-network me-2 text-info"></i>Server Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Host</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" 
+                               name="host" value="{{ config.HOST }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Port</label>
+                        <input type="number" class="form-control bg-dark text-white border-secondary" 
+                               name="port" value="{{ config.PORT }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Debug Mode</label>
+                        <select class="form-select bg-dark text-white border-secondary" name="debug">
+                            <option value="true" {{ 'selected' if config.DEBUG else '' }}>Enabled</option>
+                            <option value="false" {{ 'selected' if not config.DEBUG else '' }}>Disabled</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3">
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-save me-2"></i>Save Configuration
+            </button>
+            <button type="button" class="btn btn-outline-light" id="viewIdpMetadataBtn">
+                <i class="bi bi-code-slash me-2"></i>View Metadata
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- IDP Metadata Modal -->
+<div class="modal fade" id="idpMetadataModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-code-slash me-2 text-primary"></i>IDP SAML Metadata</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-3">
+        <pre id="idpMetadataContent" class="xml-content m-0"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-primary" id="copyIdpMetadataBtn">
+            <i class="bi bi-clipboard me-1"></i>Copy XML
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/vkbeautify.js') }}"></script>
+<script>
+function highlightXML(xml) {
+    let escaped = xml
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    
+    escaped = escaped
+        .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span style="color:#6a737d">$1</span>')
+        .replace(/(&lt;\?[\s\S]*?\?&gt;)/g, '<span style="color:#d2a8ff">$1</span>')
+        .replace(/(&lt;\/?)(\w[\w:-]*)/g, '$1<span style="color:#7ee787">$2</span>')
+        .replace(/([\w:-]+)(=)(&quot;)/g, '<span style="color:#79c0ff">$1</span>$2$3')
+        .replace(/(&quot;)([^&]*)(&quot;)/g, '$1<span style="color:#a5d6ff">$2</span>$3')
+        .replace(/(&gt;)/g, '<span style="color:#7ee787">$1</span>')
+        .replace(/(&lt;)/g, '<span style="color:#7ee787">$1</span>');
+    
+    return escaped;
+}
+
+let rawIdpXml = "";
+
+document.getElementById('viewIdpMetadataBtn').addEventListener('click', async function() {
+    const modal = new bootstrap.Modal(document.getElementById('idpMetadataModal'));
+    const content = document.getElementById('idpMetadataContent');
+    content.innerHTML = '<span class="text-muted">Loading...</span>';
+    modal.show();
+    
+    try {
+        const response = await fetch('/metadata');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const xml = await response.text();
+        const formatted = (typeof vkbeautify !== 'undefined') ? vkbeautify.xml(xml) : xml;
+        rawIdpXml = formatted;
+        content.innerHTML = highlightXML(formatted);
+    } catch (err) {
+        content.innerHTML = '<span class="text-danger">⚠️ Failed to load metadata</span>';
+        console.error('Metadata fetch error:', err);
+    }
+});
+
+document.getElementById('copyIdpMetadataBtn').addEventListener('click', function() {
+    navigator.clipboard.writeText(rawIdpXml)
+        .then(() => {
+            this.innerHTML = '<i class="bi bi-clipboard-check me-1"></i>Copied!';
+            setTimeout(() => {
+                this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy XML';
+            }, 2000);
+        })
+        .catch(err => console.error('Copy failed:', err));
+});
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+<form method="POST" action="/admin/update_settings">
+  <div class="mb-3">
+    <label class="form-label">Entity ID</label>
+    <input type="text" name="entity_id" value="{{ entity_id }}" class="form-control">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">SSO URL</label>
+    <input type="text" name="sso_url" value="{{ sso_url }}" class="form-control">
+  </div>
+  <button type="submit" class="btn btn-success">Save Settings</button>
+</form>

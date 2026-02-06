@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}SSO Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card border-0 shadow-lg animate-fade-in p-4 mt-5 bg-transparent glass">
+      <div class="card-body">
+        <div class="text-center mb-5">
+            <h2 class="h2 text-gradient fw-bold">SSO Login</h2>
+            <p class="text-white opacity-50">Authentication required for service access.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.login') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-3">
+            <label for="username" class="form-label small fw-bold text-uppercase tracking-wider">Username</label>
+            <input type="text" id="username" name="username" class="form-control" placeholder="Enter username" required autofocus>
+          </div>
+
+          <div class="mb-4">
+            <label for="password" class="form-label small fw-bold text-uppercase tracking-wider">Password</label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+          </div>
+
+          <div class="d-grid mt-5">
+            <button type="submit" class="btn btn-primary py-3">
+              <span>Sign In</span>
+              <i class="bi bi-box-arrow-in-right"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

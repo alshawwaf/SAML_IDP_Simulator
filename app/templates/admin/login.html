@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Admin Login{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-lg animate-fade-in p-4 bg-transparent glass">
+                <div class="card-body">
+                    <div class="text-center mb-5">
+                        <h2 class="h2 text-gradient fw-bold">Admin Portal</h2>
+                        <p class="text-white opacity-50">Please sign in to manage system settings.</p>
+                    </div>
+
+
+                    <form method="POST" action="{{ url_for('admin.login') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="username" class="form-label small fw-bold text-uppercase tracking-wider">Username</label>
+                            <input type="text" class="form-control" 
+                                   id="username" name="username" 
+                                   placeholder="Enter your username"
+                                   required autofocus>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label small fw-bold text-uppercase tracking-wider">Password</label>
+                            <input type="password" class="form-control" 
+                                   id="password" name="password" 
+                                   placeholder="••••••••"
+                                   required>
+                        </div>
+                        
+                        <div class="d-grid mt-5">
+                            <button type="submit" class="btn btn-primary py-3">
+                                <span>Sign In</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

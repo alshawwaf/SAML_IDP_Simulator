@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-gradient mb-0">
+            <i class="bi bi-people-fill me-2"></i>User Management
+        </h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="bi bi-plus-lg me-1"></i>Add User
+        </button>
+    </div>
+
+    <div class="card glass">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="px-3 py-3" style="width: 20%;">
+                                <i class="bi bi-person me-2 text-primary"></i>Username
+                            </th>
+                            <th class="px-3 py-3" style="width: 20%;">
+                                <i class="bi bi-card-text me-2 text-primary"></i>Full Name
+                            </th>
+                            <th class="px-3 py-3" style="width: 25%;">
+                                <i class="bi bi-envelope me-2 text-primary"></i>Email
+                            </th>
+                            <th class="px-3 py-3" style="width: 20%;">
+                                <i class="bi bi-collection me-2 text-primary"></i>Groups
+                            </th>
+                            <th class="px-3 py-3 text-end" style="width: 15%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td class="px-3 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-primary bg-opacity-20 p-2 me-2 flex-shrink-0">
+                                        <i class="bi bi-person-fill text-primary"></i>
+                                    </div>
+                                    <span class="fw-medium text-white">{{ user.username }}</span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-3">
+                                {% if user.first_name or user.last_name %}
+                                <span class="text-light">{{ user.first_name or '' }} {{ user.last_name or '' }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-3">
+                                <code class="small">{{ user.email }}</code>
+                            </td>
+                            <td class="px-3 py-3">
+                                {% if user.groups %}
+                                    {% for group in user.groups %}
+                                    <span class="badge bg-secondary me-1 mb-1">{{ group }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                <span class="text-muted">No groups</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-3 text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary edit-user-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editUserModal"
+                                            data-user="{{ user.username }}"
+                                            title="Edit User">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning reset-password-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#resetPasswordModal"
+                                            data-user="{{ user.username }}"
+                                            title="Reset Password">
+                                        <i class="bi bi-key"></i>
+                                    </button>
+                                    <a href="{{ url_for('admin.delete_user', username=user.username) }}" 
+                                       class="btn btn-outline-danger"
+                                       onclick="return confirm('Are you sure you want to delete this user?')"
+                                       title="Delete User">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
+                                    <p class="mb-2">No users found</p>
+                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                        <i class="bi bi-plus-lg me-1"></i>Add your first user
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Stats Card -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card glass border-0">
+                <div class="card-body text-center">
+                    <div class="fs-2 text-primary fw-bold">{{ users|length }}</div>
+                    <div class="text-muted small">Total Users</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "admin/modals/user_modals.html" %}
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='js/admin_modals.js') }}"></script>
+{% endblock %}

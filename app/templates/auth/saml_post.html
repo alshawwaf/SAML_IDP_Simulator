@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SAML Redirect</title>
+</head>
+<body>
+    <noscript>
+        <p><strong>Note:</strong> JavaScript is required for automatic redirection.</p>
+    </noscript>
+    
+    <form id="samlForm" method="post" action="{{ acs_url }}">
+        <input type="hidden" name="SAMLResponse" value="{{ saml_response }}">
+        {% if relay_state %}
+        <input type="hidden" name="RelayState" value="{{ relay_state }}">
+        {% endif %}
+        <input type="submit" value="Continue to Service Provider">
+    </form>
+
+    <script>
+        // Immediate form submission after element creation
+        (function() {
+            document.getElementById('samlForm').submit();
+        })();
+    </script>
+</body>
+</html>

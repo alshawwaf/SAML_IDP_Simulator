@@ -16,12 +16,6 @@ services:
     volumes:
       - saml_idp_data:/app/data
       - saml_idp_certs:/app/app/certs
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.saml-idp.rule=Host(`idp.cpdemo.ca`)"
-      - "traefik.http.routers.saml-idp.entrypoints=websecure"
-      - "traefik.http.routers.saml-idp.tls.certresolver=letsencrypt"
-      - "traefik.http.services.saml-idp.loadbalancer.server.port=5000"
     networks:
       - dokploy-network
     restart: unless-stopped

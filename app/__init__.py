@@ -8,42 +8,46 @@ import uuid
 csrf = CSRFProtect()
 
 def seed_default_data():
-    """Create default users and service providers if database is empty"""
+    """Create default users and service providers if database is empty
     
-    # Default SAML Users for Check Point demos
+    NOTE: These are DEMO credentials for testing purposes only.
+    In production, create your own users via the admin interface.
+    """
+    
+    # Default demo users (password: Demo123!)
     default_users = [
         {
             "username": "demo.user",
-            "email": "demo.user@cpdemo.ca",
-            "password": "Cpwins!1@2026",
+            "email": "demo.user@example.com",
+            "password": "Demo123!",
             "first_name": "Demo",
             "last_name": "User",
             "groups": ["saml_users", "vpn_users"],
         },
         {
             "username": "john.smith",
-            "email": "john.smith@cpdemo.ca",
-            "password": "Cpwins!1@2026",
+            "email": "john.smith@example.com",
+            "password": "Demo123!",
             "first_name": "John",
             "last_name": "Smith",
             "groups": ["saml_users", "admins"],
         },
         {
             "username": "jane.doe",
-            "email": "jane.doe@cpdemo.ca",
-            "password": "Cpwins!1@2026",
+            "email": "jane.doe@example.com",
+            "password": "Demo123!",
             "first_name": "Jane",
             "last_name": "Doe",
             "groups": ["saml_users", "security_admins"],
         },
     ]
     
-    # Default Service Providers for Check Point products
+    # Example Service Providers (customize for your environment)
     default_sps = [
         {
-            "name": "Harmony Connect Portal",
-            "entity_id": "https://10.1.1.111/connect/spPortal/ACS/ID/4bd3c39d-3f85-444f-9230-92c922b93db4",
-            "acs_url": "https://10.1.1.111/connect/spPortal/ACS/Login/4bd3c39d-3f85-444f-9230-92c922b93db4",
+            "name": "Example App 1",
+            "entity_id": "https://app1.example.com/saml/metadata",
+            "acs_url": "https://app1.example.com/saml/acs",
             "attr_map": [
                 {"claim": "email", "value": "email"},
                 {"claim": "firstName", "value": "first_name"},
@@ -52,9 +56,9 @@ def seed_default_data():
             ],
         },
         {
-            "name": "Quantum Security Gateway",
-            "entity_id": "https://gateway.cpdemo.local/saml/sp",
-            "acs_url": "https://gateway.cpdemo.local/saml/acs",
+            "name": "Example App 2",
+            "entity_id": "https://app2.example.com/saml/sp",
+            "acs_url": "https://app2.example.com/saml/acs",
             "attr_map": [
                 {"claim": "email", "value": "email"},
                 {"claim": "uid", "value": "username"},
@@ -62,9 +66,9 @@ def seed_default_data():
             ],
         },
         {
-            "name": "SmartConsole",
-            "entity_id": "https://smartconsole.cpdemo.local/saml/metadata",
-            "acs_url": "https://smartconsole.cpdemo.local/saml/acs",
+            "name": "Example App 3",
+            "entity_id": "https://app3.example.com/saml/metadata",
+            "acs_url": "https://app3.example.com/saml/acs",
             "attr_map": [
                 {"claim": "email", "value": "email"},
                 {"claim": "name", "value": "first_name"},

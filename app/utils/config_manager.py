@@ -20,8 +20,8 @@ class ConfigManager:
         self.SSO_SERVICE_URL = os.getenv("SSO_SERVICE_URL", f"http://{self.HOST}:{self.PORT}/sso")
         
         # Admin Credentials (CHANGE THESE IN PRODUCTION via environment variables)
-        self.ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-        self.ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+        self.ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin@cpdemo.ca")
+        self.ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Cpwins!1@2026")
         
         # Certificate Paths
         self.CERT_PATH = os.getenv("CERT_PATH", "app/certs/idp-cert.pem")

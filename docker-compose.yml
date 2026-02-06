@@ -10,8 +10,8 @@ services:
       - ENABLE_SSL=false
       - FLASK_DEBUG=true
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
-      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin@cpdemo.ca}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Cpwins!1@2026}
       - CERT_PATH=/app/certs/idp-cert.pem
       - KEY_PATH=/app/certs/idp-key.pem
     volumes:

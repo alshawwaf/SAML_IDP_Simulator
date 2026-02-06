@@ -13,6 +13,8 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Cpwins!1@2026}
       - CERT_PATH=/app/app/certs/idp-cert.pem
       - KEY_PATH=/app/app/certs/idp-key.pem
+      - IDP_ENTITY_ID=https://idp.cpdemo.ca
+      - SSO_SERVICE_URL=https://idp.cpdemo.ca/sso
     volumes:
       - saml_idp_data:/app/data
       - saml_idp_certs:/app/app/certs

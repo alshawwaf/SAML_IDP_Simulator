@@ -224,7 +224,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (sp.attr_map && sp.attr_map.length > 0) {
                     sp.attr_map.forEach((attr, index) => {
-                        addClaimRow(claimsBody, index, attr.claim, attr.field, true);
+                        // older records use 'value', newer code may use 'field'
+                        const fieldVal = attr.value || attr.field || '';
+                        addClaimRow(claimsBody, index, attr.claim, fieldVal, true);
                     });
                 } else {
                     addClaimRow(claimsBody, 0, 'emailaddress', 'email', true);

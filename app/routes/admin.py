@@ -187,7 +187,7 @@ def create_sp():
         claim_name = request.form.get(f'claim_name_{i}')
         claim_value = request.form.get(f'claim_value_{i}')
         if claim_name and claim_value:
-            attr_map.append({'claim': claim_name, 'field': claim_value})
+            attr_map.append({'claim': claim_name, 'value': claim_value})
         i += 1
     
     if ServiceProvider.query.filter_by(entity_id=entity_id).first():
@@ -221,7 +221,7 @@ def edit_sp(sp_id):
         claim_name = request.form.get(f'claim_name_{i}')
         claim_value = request.form.get(f'claim_value_{i}')
         if claim_name and claim_value:
-            attr_map.append({'claim': claim_name, 'field': claim_value})
+            attr_map.append({'claim': claim_name, 'value': claim_value})
         i += 1
     sp.attr_map = attr_map
     

@@ -1,20 +1,35 @@
 services:
   saml-idp:
     build: .
+    image: ghcr.io/alshawwaf/saml_idp_simulator:latest
     container_name: saml-idp-simulator
-    ports:
-      - "9001:5000"
     environment:
       - IDP_PORT=5000
       - IDP_HOST=0.0.0.0
       - ENABLE_SSL=false
-      - FLASK_DEBUG=true
-      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - FLASK_DEBUG=0
+      - SECRET_KEY=${SECRET_KEY:-Super-very-secret-key-cpdemo-2026}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin@cpdemo.ca}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Cpwins!1@2026}
-      - CERT_PATH=/app/certs/idp-cert.pem
-      - KEY_PATH=/app/certs/idp-key.pem
+      - CERT_PATH=/app/app/certs/idp-cert.pem
+      - KEY_PATH=/app/app/certs/idp-key.pem
     volumes:
-      - ./app/certs:/app/certs
-      - ./instance:/app/instance
+      - saml_idp_data:/app/data
+      - saml_idp_certs:/app/app/certs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.saml-idp.rule=Host(`idp.cpdemo.ca`)"
+      - "traefik.http.routers.saml-idp.entrypoints=websecure"
+      - "traefik.http.routers.saml-idp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.saml-idp.loadbalancer.server.port=5000"
+    networks:
+      - dokploy-network
     restart: unless-stopped
+
+volumes:
+  saml_idp_data:
+  saml_idp_certs:
+
+networks:
+  dokploy-network:
+    external: true

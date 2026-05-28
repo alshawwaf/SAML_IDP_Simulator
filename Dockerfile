@@ -23,8 +23,9 @@ COPY . .
 RUN chmod +x entrypoint.py
 
 # Environment variable paths (certs will be generated at runtime using IDP_HOST)
-ENV CERT_PATH=/app/certs/idp-cert.pem \
-    KEY_PATH=/app/certs/idp-key.pem
+# Must match IDP_CERT/IDP_KEY in app/utils/path_config.py (CERTS_DIR = /app/app/certs)
+ENV CERT_PATH=/app/app/certs/idp-cert.pem \
+    KEY_PATH=/app/app/certs/idp-key.pem
 
 # Expose the port Flask runs on
 EXPOSE 5000

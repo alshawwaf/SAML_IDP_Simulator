@@ -1,4 +1,4 @@
-# 🛡️ SAML + SCIM IDP Simulator for Check Point
+# 🛡️ Identity Simulator for Check Point
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![SAML 2.0](https://img.shields.io/badge/SAML-2.0-green)](https://en.wikipedia.org/wiki/SAML_2.0)
@@ -9,13 +9,13 @@
 
 ## 🚀 Overview
 
-The **SAML IDP Simulator** is a modern Identity Provider emulator tailored for **Check Point environments** (Harmony, Quantum, CloudGuard, SASE). It provides a **production-grade SAML SSO experience** plus an optional **SCIM 2.0 provisioning surface** for:
+The **Identity Simulator** (formerly SAML IDP Simulator) is a modern Identity Provider emulator tailored for **Check Point environments** (Quantum, CloudGuard, and Check Point SASE — formerly Check Point SASE). It provides a **production-grade SAML SSO experience** plus an optional **SCIM 2.0 provisioning surface** for:
 
 - Security PoCs
 - Workshops and demos
-- Integration testing — including **Harmony SASE SCIM provisioning**
+- Integration testing — including **Check Point SASE SCIM provisioning**
 
-✨ Featuring a full-featured **web admin portal**, **dynamic attribute mapping**, **realistic SAML flows**, and **bidirectional SCIM** (acts as both a SCIM server *and* a client that pushes to upstream SCIM endpoints like Harmony SASE).
+✨ Featuring a full-featured **web admin portal**, **dynamic attribute mapping**, **realistic SAML flows**, and **bidirectional SCIM** (acts as both a SCIM server *and* a client that pushes to upstream SCIM endpoints like Check Point SASE).
 
 ---
 
@@ -36,9 +36,9 @@ The **SAML IDP Simulator** is a modern Identity Provider emulator tailored for *
 - ⚙️ **Admin Portal** for easy control and visibility
 
 ### SCIM 2.0 (optional, off by default)
-- 🔁 **Bidirectional** — acts as SCIM server (receives pushes from Entra / Okta) *and* SCIM client (pushes to Harmony SASE)
+- 🔁 **Bidirectional** — acts as SCIM server (receives pushes from Entra / Okta) *and* SCIM client (pushes to Check Point SASE)
 - ⚡ **Zero-touch enablement** — set `ENABLE_SCIM=true`; encryption key + first bearer token auto-generated
-- 🌍 **One-click Harmony region presets** (US / EU / AU / IN)
+- 🌍 **One-click Check Point SASE region presets** (US / EU / AU / IN)
 - 📜 **Full push audit log** with request/response bodies — perfect for live demos
 - 🔄 **Optional auto-sync** of admin user CRUD to every enabled SCIM target
 - ✅ **48/59** `scim2-tester` RFC compliance checks pass
@@ -214,7 +214,7 @@ The simulator can also speak SCIM 2.0. It's **bidirectional**:
 | Direction | Mode | Used when |
 |---|---|---|
 | **Inbound** | SCIM **server** at `/scim/v2/*` | An external IdP (Entra ID, Okta, JumpCloud) pushes users *into* the simulator |
-| **Outbound** | SCIM **client** that pushes to a remote SCIM server | The simulator pushes users *to* Check Point Harmony SASE (or any RFC 7644 server) |
+| **Outbound** | SCIM **client** that pushes to a remote SCIM server | The simulator pushes users *to* Check Point Check Point SASE (or any RFC 7644 server) |
 
 You can use one direction, the other, or both — the same `ENABLE_SCIM=true` flag turns on the whole surface.
 
@@ -260,27 +260,27 @@ Paste this token into your IdP's "Secret Token" / "API Token" field, point its S
 
 ---
 
-### 📤 Outbound: pushing to Harmony SASE
+### 📤 Outbound: pushing to Check Point SASE
 
 This is the **only step that needs manual input** — Check Point has to give you a token, the simulator can't generate it for you.
 
-**On the Harmony / Perimeter 81 side:**
+**On the Check Point SASE side:**
 
-1. Open your Harmony SASE admin portal
+1. Open your Check Point SASE admin portal (formerly Harmony SASE / Perimeter 81 — same product)
 2. **Settings → Identity Providers → SCIM Integration → Generate Token**
-3. **Copy the token immediately — Harmony only shows it once**
+3. **Copy the token immediately — Check Point SASE only shows it once**
 
 **In the simulator's admin UI:**
 
 1. Log in at `/admin/login`
 2. Open the **SCIM → Outbound Targets** menu in the navbar
 3. Click **Add Target**
-4. Pick your Harmony region with the one-click preset buttons (US / EU / AU / IN):
+4. Pick your Check Point SASE region with the one-click preset buttons (US / EU / AU / IN):
    - US: `https://api.perimeter81.com/api/scim`
    - EU: `https://api.eu.sase.checkpoint.com/api/scim`
    - AU: `https://api.au.sase.checkpoint.com/api/scim`
    - IN: `https://api.in.sase.checkpoint.com/api/scim`
-5. Paste the Harmony token into the **Bearer Token** field
+5. Paste the Check Point SASE token into the **Bearer Token** field
 6. Save → click **Test** on the target row → expect a green 200
 7. Click **Sync All** to push the demo users, or pick one user + target from the single-sync form
 
@@ -321,7 +321,7 @@ When `ENABLE_SCIM=true`:
 - JumpCloud SCIM connector
 - The `scim2-tester` RFC 7644 compliance suite — 48/59 pass; the 11 gaps are documented model-shape limitations of the SAML-first `User` schema and don't affect real-world clients
 
-See [docs/SCIM_PLAN.md](docs/SCIM_PLAN.md) for the full design, Harmony SASE quirks, and the compliance gap analysis.
+See [docs/SCIM_PLAN.md](docs/SCIM_PLAN.md) for the full design, Check Point SASE quirks, and the compliance gap analysis.
 
 ### ⚙️ Advanced env vars
 

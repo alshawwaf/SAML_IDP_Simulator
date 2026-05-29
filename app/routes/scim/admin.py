@@ -235,7 +235,7 @@ def new_inbound_token():
         enabled=True,
     ))
     db.session.commit()
-    # Surface the raw token ONCE via session — same flow Harmony itself uses.
+    # Surface the raw token ONCE via session — same flow Check Point SASE itself uses.
     session["_scim_fresh_token"] = raw_token
     session["_scim_fresh_token_name"] = name
     flash(f"Inbound token {name!r} created. Copy the value below — it won't be shown again.", "success")

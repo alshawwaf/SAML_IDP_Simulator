@@ -14,9 +14,9 @@
 
   <div class="alert alert-info border-0 glass mb-4">
     <small><i class="bi bi-info-circle me-2"></i>
-      Outbound targets are SCIM 2.0 servers this simulator pushes to — typically a Check Point Harmony SASE
+      Outbound targets are SCIM 2.0 servers this simulator pushes to — typically a Check Point Check Point SASE
       tenant. Get the base URL and bearer token from <strong>Settings → Identity Providers → SCIM Integration → Generate Token</strong>
-      in the Harmony admin UI. The token is shown once; paste it here immediately.
+      in the Check Point SASE admin UI. The token is shown once; paste it here immediately.
     </small>
   </div>
 
@@ -127,7 +127,7 @@
     <div class="card-body">
       <i class="bi bi-cloud-slash fs-1 text-muted opacity-50"></i>
       <h5 class="mt-3 mb-2">No SCIM targets configured</h5>
-      <p class="text-muted small">Add a Harmony SASE tenant (or any SCIM 2.0 server) to start pushing users.</p>
+      <p class="text-muted small">Add a Check Point SASE tenant (or any SCIM 2.0 server) to start pushing users.</p>
       <a href="{{ url_for('scim_admin.new_target') }}" class="btn btn-primary mt-2">
         <i class="bi bi-plus-lg me-1"></i>Add Your First Target
       </a>

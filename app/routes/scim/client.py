@@ -1,13 +1,14 @@
 """SCIM 2.0 outbound client — pushes users/groups to a remote SCIM server.
 
-Production target: Check Point Harmony SASE at https://api.perimeter81.com/api/scim
+Production target: Check Point Check Point SASE at https://api.perimeter81.com/api/scim
 (or the EU/AU/IN regional sibling). Works against any RFC 7644 SCIM 2.0 server.
 
 Every request is logged to ScimPushLog so admins can inspect the wire shape
 during demos — invaluable when explaining what SCIM provisioning actually sends.
 
-Outbound mapping follows Generic SCIM 2.0 with the one universal Harmony quirk
-baked in: userName = email. (Harmony requires it; most other servers accept it.)
+Outbound mapping follows Generic SCIM 2.0 with the one universal Check Point SASE
+quirk baked in: userName = email. (Check Point SASE requires it; most other
+servers accept it.)
 """
 import json
 import time
@@ -63,7 +64,7 @@ class ScimClient:
 
         Tries /ServiceProviderConfig first (lightest probe). Discovery
         endpoints are OPTIONAL per RFC 7644 §4 and some servers — notably
-        Check Point Harmony SASE — don't expose them. On 404 we fall back
+        Check Point Check Point SASE — don't expose them. On 404 we fall back
         to /Users?count=0 which is mandatory per RFC 7644 §3.4.2 and
         returns just the totalResults metadata without any actual rows.
         """
@@ -202,7 +203,7 @@ class ScimClient:
     def _user_payload(self, user: User) -> dict:
         return {
             "schemas": [USER_SCHEMA],
-            "userName": user.email,           # Harmony convention: userName = email
+            "userName": user.email,           # Check Point SASE convention: userName = email
             "externalId": user.user_id,       # our local UUID becomes the upstream externalId
             "name": {
                 "givenName": user.first_name or "",

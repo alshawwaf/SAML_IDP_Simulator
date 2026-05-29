@@ -25,6 +25,7 @@ The **SAML IDP Simulator** is a modern Identity Provider emulator tailored for *
 
 ## 🌟 Key Features
 
+### SAML 2.0
 - 🔐 **SP-Initiated SSO** using signed SAML Response + Assertion
 - 🧩 **Dynamic Attribute Mapping** via admin UI (claim → user field)
 - 👤 **User Management** with modal-based edit/create/delete
@@ -33,6 +34,14 @@ The **SAML IDP Simulator** is a modern Identity Provider emulator tailored for *
 - 🕸️ **Web Login Flow** simulates realistic browser-based authentication
 - 📁 **One-click Metadata / Certificate Download**
 - ⚙️ **Admin Portal** for easy control and visibility
+
+### SCIM 2.0 (optional, off by default)
+- 🔁 **Bidirectional** — acts as SCIM server (receives pushes from Entra / Okta) *and* SCIM client (pushes to Harmony SASE)
+- ⚡ **Zero-touch enablement** — set `ENABLE_SCIM=true`; encryption key + first bearer token auto-generated
+- 🌍 **One-click Harmony region presets** (US / EU / AU / IN)
+- 📜 **Full push audit log** with request/response bodies — perfect for live demos
+- 🔄 **Optional auto-sync** of admin user CRUD to every enabled SCIM target
+- ✅ **48/59** `scim2-tester` RFC compliance checks pass
 
 ---
 
@@ -200,29 +209,134 @@ FLASK_DEBUG=1
 
 ## 🔁 SCIM 2.0 (optional)
 
-The simulator can also speak SCIM 2.0 — both as a **server** (so Entra ID / Okta can push users into it) and as a **client** (so it can push users out to a Check Point Harmony SASE tenant).
+The simulator can also speak SCIM 2.0. It's **bidirectional**:
 
-**Enable it — one variable:**
+| Direction | Mode | Used when |
+|---|---|---|
+| **Inbound** | SCIM **server** at `/scim/v2/*` | An external IdP (Entra ID, Okta, JumpCloud) pushes users *into* the simulator |
+| **Outbound** | SCIM **client** that pushes to a remote SCIM server | The simulator pushes users *to* Check Point Harmony SASE (or any RFC 7644 server) |
 
-```bash
-# Add to .env (or your Dokploy environment)
-ENABLE_SCIM=true
-```
-
-That's it. On first boot the simulator will:
-- Derive the token-encryption key from `SECRET_KEY` (no manual `SCIM_ENCRYPTION_KEY` needed — set one explicitly only if you want to decouple from `SECRET_KEY` rotation)
-- Auto-generate a default inbound bearer token, log it prominently in the startup log, and write it to `data/.scim-bootstrap-token` for retrieval
-- Surface the token in a banner on the SCIM admin dashboard the first time you visit it (click "Acknowledge" to delete the bootstrap file)
-
-When `ENABLE_SCIM=true`:
-- `/scim/v2/{Users,Groups,ServiceProviderConfig,ResourceTypes,Schemas,.search}` exposed with bearer-token auth
-- A new **SCIM** dropdown appears in the admin nav: manage outbound targets (Harmony tenants), inbound bearer tokens, and inspect the SCIM push log
-- One-click Harmony SASE region presets (US / EU / AU / IN) on the target form
-- Round-trip with Entra ID, Okta, and JumpCloud-style SCIM clients
+You can use one direction, the other, or both — the same `ENABLE_SCIM=true` flag turns on the whole surface.
 
 When `ENABLE_SCIM=false` (the default), the SAML flow runs exactly as before — no new tables created, no new routes registered.
 
-See [docs/SCIM_PLAN.md](docs/SCIM_PLAN.md) for the full design, Harmony SASE quirks, and compliance notes.
+---
+
+### ⚡ Quick start
+
+**1. Enable SCIM** — add **one variable** to `.env` or your Dokploy environment:
+
+```bash
+ENABLE_SCIM=true
+```
+
+**2. Redeploy.** That's it for the inbound direction. On first boot the simulator automatically:
+
+- Derives the token-encryption key from `SECRET_KEY` (no manual key generation needed)
+- Auto-generates one default inbound bearer token
+- Prints it in the startup log AND saves it to `data/.scim-bootstrap-token`
+- Surfaces it in a banner on `/admin/scim/` with a one-click "I copied it" button
+
+You'll see this in the container logs at startup:
+
+```
+======================================================================
+SCIM default inbound bearer token (auto-generated)
+  Token: ZIoW4d1p6cKH8ytP26fEQf-Q_X5H8aLqajrx5OwXtFM
+  Bootstrap file: /app/data/.scim-bootstrap-token
+  Use as: Authorization: Bearer <token>
+  Manage at /admin/scim/inbound-tokens
+======================================================================
+SCIM encryption key auto-derived from SECRET_KEY (override with SCIM_ENCRYPTION_KEY env var)
+SCIM endpoints enabled at /scim/v2 (server) and /admin/scim (admin UI)
+```
+
+Three ways to read the token:
+- **Dokploy / `docker logs`** (printed at startup)
+- **File**: `cat /app/data/.scim-bootstrap-token` (chmod 600, persisted in the `saml_idp_data` volume)
+- **Admin UI**: the SCIM dashboard banner the first time you open it
+
+Paste this token into your IdP's "Secret Token" / "API Token" field, point its SCIM tenant URL at `https://<your-host>/scim/v2`, and pushes work.
+
+---
+
+### 📤 Outbound: pushing to Harmony SASE
+
+This is the **only step that needs manual input** — Check Point has to give you a token, the simulator can't generate it for you.
+
+**On the Harmony / Perimeter 81 side:**
+
+1. Open your Harmony SASE admin portal
+2. **Settings → Identity Providers → SCIM Integration → Generate Token**
+3. **Copy the token immediately — Harmony only shows it once**
+
+**In the simulator's admin UI:**
+
+1. Log in at `/admin/login`
+2. Open the **SCIM → Outbound Targets** menu in the navbar
+3. Click **Add Target**
+4. Pick your Harmony region with the one-click preset buttons (US / EU / AU / IN):
+   - US: `https://api.perimeter81.com/api/scim`
+   - EU: `https://api.eu.sase.checkpoint.com/api/scim`
+   - AU: `https://api.au.sase.checkpoint.com/api/scim`
+   - IN: `https://api.in.sase.checkpoint.com/api/scim`
+5. Paste the Harmony token into the **Bearer Token** field
+6. Save → click **Test** on the target row → expect a green 200
+7. Click **Sync All** to push the demo users, or pick one user + target from the single-sync form
+
+Every request and response is logged to `/admin/scim/log` — great for live demos.
+
+---
+
+### 🔄 Optional: auto-sync admin user CRUD
+
+Add this env var to fan out admin user-management changes to every enabled outbound target automatically:
+
+```bash
+SCIM_PUSH_ON_USER_CHANGE=true
+```
+
+When on, creating / editing / deleting a user via the admin UI auto-pushes the change to each enabled SCIM target. Failures are logged but never break the admin flow.
+
+---
+
+### 🛠 What gets created when SCIM is enabled
+
+When `ENABLE_SCIM=true`:
+- `/scim/v2/{Users,Groups,ServiceProviderConfig,ResourceTypes,Schemas,.search}` with bearer-token auth
+- A new **SCIM** dropdown in the admin nav: Outbound Targets, Inbound Tokens, Push Log
+- Five new database tables (`scim_target`, `scim_inbound_token`, `scim_group`, `scim_group_member`, `scim_push_log`) — all additive, the existing `user` and `service_provider` tables are untouched
+
+### 🔐 Security model
+
+- **Inbound tokens** — stored as SHA-256 hashes, constant-time compared, raw value only shown once (or via the bootstrap file)
+- **Outbound tokens** — Fernet-encrypted at rest (AES-128), key derived from `SECRET_KEY` unless you set `SCIM_ENCRYPTION_KEY` explicitly
+- **CSRF** — `/scim/v2/*` endpoints are CSRF-exempt (they use bearer tokens, not cookies); admin pages remain CSRF-protected
+- **Audit** — every outbound push is logged to `ScimPushLog` with full request/response bodies
+
+### 🧪 Tested against
+
+- Entra ID / Azure AD SCIM provisioner
+- Okta SCIM integration
+- JumpCloud SCIM connector
+- The `scim2-tester` RFC 7644 compliance suite — 48/59 pass; the 11 gaps are documented model-shape limitations of the SAML-first `User` schema and don't affect real-world clients
+
+See [docs/SCIM_PLAN.md](docs/SCIM_PLAN.md) for the full design, Harmony SASE quirks, and the compliance gap analysis.
+
+### ⚙️ Advanced env vars
+
+You normally don't touch these — the defaults work:
+
+```bash
+# Override only if you want SCIM tokens to survive a SECRET_KEY rotation
+SCIM_ENCRYPTION_KEY=                       # default: derived from SECRET_KEY
+
+# Mount path for the SCIM server (rarely changed)
+SCIM_BASE_PATH=/scim/v2
+
+# Auto-push admin user CRUD to enabled SCIM targets
+SCIM_PUSH_ON_USER_CHANGE=false
+```
 
 ---
 

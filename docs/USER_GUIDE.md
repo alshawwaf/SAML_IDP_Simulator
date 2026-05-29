@@ -6,6 +6,8 @@ A complete walkthrough for configuring the simulator with **Check Point SASE** (
 
 **What you'll have at the end:** A live simulator at your own domain, syncing users into a real Check Point SASE tenant via SCIM, and able to receive SAML SSO requests from any Check Point product.
 
+> **Note on screenshots in this guide:** the inline images live under [`docs/guide/images/`](guide/images/). To rebuild the `.docx` after dropping in new screenshots, run `./docs/build_user_guide.sh` from the project root.
+
 ---
 
 ## Table of contents
@@ -75,7 +77,7 @@ Click **Deploy**. First build takes ~2 min (installs Python deps + generates sel
 
 After the deploy completes, browse to `https://idp.<yourdomain>/`. You should see the simulator homepage with the gradient "Identity Provider Made Simple" hero.
 
-> 📷 *[Screenshot: simulator homepage with the blue gradient hero]*
+![Simulator homepage](guide/images/01-homepage.png)
 
 ---
 
@@ -93,7 +95,7 @@ ENABLE_SCIM=true
 
 Then **Redeploy** (or **Restart**).
 
-> 📷 *[Screenshot: Dokploy Environment tab with ENABLE_SCIM=true]*
+![Dokploy Environment tab with ENABLE_SCIM=true](guide/images/02-dokploy-env-tab.png)
 
 ### 4.2 The fallback (if your Dokploy doesn't propagate env vars)
 
@@ -127,7 +129,7 @@ SCIM endpoints enabled at /scim/v2 (server) and /admin/scim (admin UI)
 
 The token is also written to `/app/data/.scim-bootstrap-token` and shown in a banner the first time you visit `/admin/scim/` in the admin UI.
 
-> 📷 *[Screenshot: the SCIM Dashboard with the yellow bootstrap-token banner]*
+![SCIM Dashboard bootstrap-token banner](guide/images/03-bootstrap-token-banner.png)
 
 ---
 
@@ -141,7 +143,7 @@ In the Check Point SASE admin portal:
 
 **Settings → Identity Providers → + Add Provider**
 
-> 📷 *[Screenshot: Identity Providers page in Check Point SASE]*
+![Check Point SASE Identity Providers page](guide/images/04-cp-idp-list.png)
 
 ### 5.2 Pick Microsoft Entra ID
 
@@ -155,7 +157,7 @@ In the "Add identity provider" modal, you'll see 5 options:
 
 Pick **Microsoft Entra ID** (the `+SCIM` badge means SCIM provisioning is supported for this connector). Click **Continue**.
 
-> 📷 *[Screenshot: identity provider picker modal with Entra ID highlighted]*
+![Add identity provider picker with Entra ID highlighted](guide/images/05-cp-idp-picker.png)
 
 > **Why Entra ID and not "SAML 2.0 Identity Providers"?** Check Point SASE only badges Entra ID and Okta as SCIM-capable. There's no "generic SCIM" option. The simulator will pretend to be Entra ID — Check Point doesn't actually verify the Entra credentials before generating the SCIM endpoint, so this works even without a real Entra tenant.
 
@@ -173,7 +175,7 @@ The form will ask for:
 
 Click **Done**.
 
-> 📷 *[Screenshot: Microsoft Entra ID form filled out with dummy values, SCIM Integration checked]*
+![Microsoft Entra ID form with dummy values + SCIM Integration checked](guide/images/06-cp-entra-form.png)
 
 ### 5.4 Generate the SCIM token
 
@@ -184,7 +186,7 @@ Back on the Identity Providers page, you'll now see:
 - **SCIM Integration: On**
 - A **Settings** link
 
-> 📷 *[Screenshot: Identity Providers page showing Microsoft Entra ID with SCIM Integration: On]*
+![Identity Providers showing Microsoft Entra ID with SCIM Integration On](guide/images/07-cp-idp-added.png)
 
 Click **Settings** next to SCIM Integration. This opens a panel with:
 
@@ -193,7 +195,7 @@ Click **Settings** next to SCIM Integration. This opens a panel with:
 
 Click **Generate Token**. Check Point SASE shows the bearer token **once**. **Copy it immediately** and paste it somewhere safe (1Password, password manager).
 
-> 📷 *[Screenshot: SCIM Settings panel with Tenant URL and the generated token]*
+![SCIM Settings panel with Tenant URL and Generate Token button](guide/images/08-cp-scim-settings.png)
 
 You now have:
 - The **Tenant URL** (e.g. `https://api.perimeter81.com/api/scim`)
@@ -214,7 +216,7 @@ Log in to `https://idp.<yourdomain>/admin/`:
 
 Click the **SCIM** dropdown in the nav → **Outbound Targets**.
 
-> 📷 *[Screenshot: simulator admin nav with the SCIM dropdown open]*
+![Simulator admin nav with SCIM dropdown open](guide/images/09-sim-scim-nav.png)
 
 ### 6.2 Add the target
 
@@ -228,7 +230,7 @@ Click **+ Add Target** and fill in:
 
 Click **Create Target**.
 
-> 📷 *[Screenshot: Add SCIM Target form with US preset clicked]*
+![Add SCIM Target form with US region preset clicked](guide/images/10-sim-add-target.png)
 
 ### 6.3 Test the connection
 
@@ -254,7 +256,7 @@ SUCCESS: Sync to 'Check Point SASE - SBTLab': 2 created, 1 updated, 0 errored.
 
 Numbers will vary based on whether the demo users already exist on the Check Point SASE side.
 
-> 📷 *[Screenshot: simulator Outbound Targets page with the green Sync success banner]*
+![Sync success banner on Outbound Targets page](guide/images/11-sim-sync-success.png)
 
 ### 7.2 Inspect the push log
 
@@ -265,7 +267,7 @@ Click **SCIM → Push Log** in the nav. You'll see every SCIM HTTP call:
 - `PATCH_USER` (PATCH, 200/204)
 - with full request and response bodies if you click the eye icon
 
-> 📷 *[Screenshot: SCIM Push Log table with create/find/patch entries and HTTP 201/200 status badges]*
+![SCIM Push Log with CREATE/FIND/PATCH entries and HTTP status badges](guide/images/12-sim-push-log.png)
 
 This log is gold for demos — you can show prospects the exact wire-level SCIM requests/responses.
 
@@ -273,7 +275,7 @@ This log is gold for demos — you can show prospects the exact wire-level SCIM 
 
 In Check Point SASE → **Team → Members**. You should see your simulator's demo users (`demo.user@cpdemo.ca`, `john.smith@cpdemo.ca`, `jane.doe@cpdemo.ca`) listed with **Identity Provider: Entra ID**.
 
-> 📷 *[Screenshot: Check Point SASE Team → Members showing the 3 synced users with Entra ID as their source]*
+![Check Point SASE Members showing synced users with Entra ID source](guide/images/13-cp-members-synced.png)
 
 That's a complete end-to-end SCIM provisioning flow — from your simulator into a real Check Point SASE tenant.
 

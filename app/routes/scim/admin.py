@@ -216,6 +216,7 @@ def list_inbound_tokens():
         tokens=tokens,
         fresh_token=fresh_token,
         fresh_token_name=fresh_token_name,
+        bootstrap_token=read_bootstrap_token(),
     )
 
 

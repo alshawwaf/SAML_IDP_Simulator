@@ -66,6 +66,35 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0.875rem 1.5rem;
 }
 
+/* Dropdown menus — Bootstrap's default light hover blanks the white text
+   on our dark theme. Restyle to match the rest of the glass aesthetic. */
+.dropdown-menu {
+  background: rgba(10, 10, 10, 0.95) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  padding: 0.5rem !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+.dropdown-menu .dropdown-item {
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+  background: rgba(37, 99, 235, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.dropdown-menu .dropdown-item:active {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+}
+
 .card {
   background: rgba(255, 255, 255, 0.03) !important;
   backdrop-filter: blur(16px) !important;

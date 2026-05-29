@@ -17,6 +17,37 @@
     </small>
   </div>
 
+  {% if bootstrap_token %}
+  <div class="alert alert-warning border-0 glass mb-4">
+    <h6 class="mb-2"><i class="bi bi-shield-lock me-2"></i>Auto-generated default token (still available)</h6>
+    <p class="small mb-2 text-warning">
+      A default inbound bearer token was created on first boot. Copy it now — once
+      you acknowledge, the bootstrap file is deleted and the value can only be
+      regenerated.
+    </p>
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <input type="text" value="{{ bootstrap_token }}" id="bootstrap-token-input" readonly
+             class="form-control bg-dark text-warning border-warning font-monospace">
+      <button type="button" class="btn btn-warning btn-sm" onclick="copyBootstrap()">
+        <i class="bi bi-clipboard"></i> Copy
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('scim_admin.acknowledge_bootstrap_token') }}" class="mt-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-warning btn-sm">
+        <i class="bi bi-check-circle me-1"></i>I copied it — delete the bootstrap file
+      </button>
+    </form>
+  </div>
+  <script>
+    function copyBootstrap() {
+      const el = document.getElementById('bootstrap-token-input');
+      el.select();
+      navigator.clipboard.writeText(el.value);
+    }
+  </script>
+  {% endif %}
+
   {% if fresh_token %}
   <div class="alert alert-warning border-0 glass mb-4">
     <h6 class="mb-2"><i class="bi bi-clipboard-check me-2"></i>New token for {{ fresh_token_name }}</h6>

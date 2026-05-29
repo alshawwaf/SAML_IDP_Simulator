@@ -3,13 +3,13 @@ services:
     build: .
     image: ghcr.io/alshawwaf/saml_idp_simulator:latest
     container_name: saml-idp-simulator
-    # Static defaults only. Per-deployment values (SECRET_KEY, ADMIN_PASSWORD,
-    # ENABLE_SCIM, etc.) come from the Dokploy "Environment" tab and override
-    # what's listed here at runtime.
+    # Static defaults baked in here so a fresh deploy works out-of-the-box.
+    # Override any of these via the Dokploy "Environment" tab.
     #
-    # Note: do NOT use `${VAR:-default}` substitution syntax here — Dokploy's
-    # env tab doesn't always populate docker-compose's variable substitution
-    # context, which silently falls back to the default and surprises operators.
+    # IMPORTANT: do NOT hardcode toggles like ENABLE_SCIM here. Listing a
+    # value in this `environment:` block locks it in for the container in
+    # some Dokploy versions and prevents the env tab from overriding.
+    # Toggles that operators should be able to flip live only in the env tab.
     environment:
       - IDP_PORT=5000
       - IDP_HOST=0.0.0.0
@@ -17,15 +17,11 @@ services:
       - FLASK_DEBUG=0
       - CERT_PATH=/app/app/certs/idp-cert.pem
       - KEY_PATH=/app/app/certs/idp-key.pem
-      # Sensible defaults for first-boot. Override via Dokploy Environment tab.
       - SECRET_KEY=Super-very-secret-key-cpdemo-2026
       - ADMIN_USERNAME=admin@cpdemo.ca
       - ADMIN_PASSWORD=Cpwins!1@2026
       - IDP_ENTITY_ID=https://idp.cpdemo.ca
       - SSO_SERVICE_URL=https://idp.cpdemo.ca/sso
-      # SCIM 2.0 is off by default. Set ENABLE_SCIM=true in Dokploy to flip it on.
-      - ENABLE_SCIM=false
-      - SCIM_PUSH_ON_USER_CHANGE=false
     volumes:
       - saml_idp_data:/app/data
       - saml_idp_certs:/app/app/certs

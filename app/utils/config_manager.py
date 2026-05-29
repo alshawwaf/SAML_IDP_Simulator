@@ -34,8 +34,14 @@ class ConfigManager:
         self.DEFAULT_SP_ENTITY_ID = os.getenv("DEFAULT_SP_ENTITY_ID")
         self.DEFAULT_SP_ACS_URL = os.getenv("DEFAULT_SP_ACS_URL")
 
-        # SCIM 2.0 — disabled by default; SAML flow is unaffected when false
-        self.ENABLE_SCIM = os.getenv("ENABLE_SCIM", "false").lower() == "true"
+        # SCIM 2.0 — disabled by default; SAML flow is unaffected when false.
+        # Two ways to enable:
+        #   1. ENABLE_SCIM=true env var (Dokploy Environment tab, .env file, etc.)
+        #   2. Create a marker file at /app/data/.enable-scim (or BASE_DIR/data/.enable-scim
+        #      locally) — useful when the env-var pipeline is broken or unavailable.
+        env_enabled = os.getenv("ENABLE_SCIM", "false").lower() == "true"
+        marker_path = BASE_DIR / "data" / ".enable-scim"
+        self.ENABLE_SCIM = env_enabled or marker_path.exists()
         self.SCIM_BASE_PATH = os.getenv("SCIM_BASE_PATH", "/scim/v2")
         self.SCIM_PUSH_ON_USER_CHANGE = os.getenv("SCIM_PUSH_ON_USER_CHANGE", "false").lower() == "true"
 

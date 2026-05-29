@@ -59,8 +59,21 @@ class ScimClient:
     # --- Discovery / health ------------------------------------------------
 
     def test_connection(self):
-        """GET /ServiceProviderConfig. Confirms URL + token reach the server."""
-        return self._request("GET", "/ServiceProviderConfig", operation="DISCOVERY_PING")
+        """Confirm the URL + token reach a working SCIM server.
+
+        Tries /ServiceProviderConfig first (lightest probe). Discovery
+        endpoints are OPTIONAL per RFC 7644 §4 and some servers — notably
+        Check Point Harmony SASE — don't expose them. On 404 we fall back
+        to /Users?count=0 which is mandatory per RFC 7644 §3.4.2 and
+        returns just the totalResults metadata without any actual rows.
+        """
+        resp = self._request("GET", "/ServiceProviderConfig", operation="DISCOVERY_PING")
+        if resp.status_code == 404:
+            resp = self._request(
+                "GET", "/Users?count=0",
+                operation="DISCOVERY_PING_FALLBACK",
+            )
+        return resp
 
     # --- User operations ---------------------------------------------------
 

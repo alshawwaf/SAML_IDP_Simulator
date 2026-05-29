@@ -16,18 +16,25 @@ class User(db.Model, UserMixin):
     user_id = db.Column(db.String(120), nullable=False, unique=True, default=lambda: str(uuid.uuid4()))
     groups = db.Column(db.JSON, default=lambda: ["saml_users"])
     is_admin = db.Column(db.Boolean, default=False)
+    active = db.Column(db.Boolean, default=True, nullable=False)
+    # SCIM external_id — set by upstream provisioners (Entra `objectId`, Okta user.id, etc.)
+    # to correlate with their own user records. Indexed for filter lookups.
+    external_id = db.Column(db.String(255), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-    
+
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-    
+
     @staticmethod
     def get_editable_user_fields():
-        exclude = {"id", "user_id", "password_hash", "created_at", "updated_at"}
+        # `active` is excluded so it doesn't appear in the SAML attribute-mapping
+        # dropdowns (sp_edit/sp_new templates iterate user_fields). It's still
+        # writable via SCIM and (later) the SCIM admin UI.
+        exclude = {"id", "user_id", "password_hash", "created_at", "updated_at", "active"}
         fields = [c.name for c in User.__table__.columns if c.name not in exclude]
         fields.append("password")
         return fields
@@ -41,3 +48,27 @@ class ServiceProvider(db.Model):
     description = db.Column(db.Text)
     attr_map = db.Column(db.JSON, nullable=False, default=list)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+def ensure_schema(engine):
+    """Idempotent additive migrations. Safe to call on every startup.
+
+    SQLite's ALTER TABLE supports ADD COLUMN, so we don't need alembic for the
+    handful of additive changes we need. If/when destructive migrations become
+    necessary, swap this for Flask-Migrate.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    if not inspector.has_table("user"):
+        # First boot — create_all() handles it, no migration needed.
+        return
+
+    existing_cols = {c["name"] for c in inspector.get_columns("user")}
+    if "active" not in existing_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE user ADD COLUMN active BOOLEAN NOT NULL DEFAULT 1"))
+    if "external_id" not in existing_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE user ADD COLUMN external_id VARCHAR(255)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_external_id ON user (external_id)"))

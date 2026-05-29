@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}SCIM Push Log #{{ entry.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-gradient mb-0">
+      <i class="bi bi-journal-code me-2"></i>Push Log Entry #{{ entry.id }}
+    </h2>
+    <a href="{{ url_for('scim_admin.push_log') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back to Log
+    </a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card glass border-0 h-100">
+        <div class="card-body">
+          <h6 class="text-white mb-3"><i class="bi bi-info-circle me-2"></i>Metadata</h6>
+          <dl class="row small mb-0">
+            <dt class="col-4 text-muted">Operation</dt>
+            <dd class="col-8"><code>{{ entry.operation }}</code></dd>
+            <dt class="col-4 text-muted">When</dt>
+            <dd class="col-8">{{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</dd>
+            <dt class="col-4 text-muted">Method / URL</dt>
+            <dd class="col-8"><span class="badge bg-secondary me-1">{{ entry.request_method }}</span><code class="small">{{ entry.request_url }}</code></dd>
+            <dt class="col-4 text-muted">Status</dt>
+            <dd class="col-8">
+              {% if entry.status_code %}
+                <span class="badge bg-{{ 'success' if entry.status_code < 400 else 'danger' }}">HTTP {{ entry.status_code }}</span>
+              {% else %}
+                <span class="badge bg-danger">Transport error</span>
+              {% endif %}
+            </dd>
+            <dt class="col-4 text-muted">Duration</dt>
+            <dd class="col-8">{{ entry.duration_ms or '–' }} ms</dd>
+            {% if entry.target_id %}
+            <dt class="col-4 text-muted">Target ID</dt>
+            <dd class="col-8">{{ entry.target_id }}</dd>
+            {% endif %}
+            {% if entry.user_id %}
+            <dt class="col-4 text-muted">Local User ID</dt>
+            <dd class="col-8">{{ entry.user_id }}</dd>
+            {% endif %}
+            {% if entry.group_id %}
+            <dt class="col-4 text-muted">Local Group ID</dt>
+            <dd class="col-8">{{ entry.group_id }}</dd>
+            {% endif %}
+            {% if entry.error %}
+            <dt class="col-4 text-muted">Error</dt>
+            <dd class="col-8 text-danger small">{{ entry.error }}</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card glass border-0 h-100">
+        <div class="card-body">
+          <h6 class="text-white mb-3"><i class="bi bi-arrow-up me-2"></i>Request Body</h6>
+          {% if entry.request_body %}
+            <pre class="bg-dark p-3 rounded small text-info" style="max-height: 300px; overflow:auto;"><code>{{ entry.request_body }}</code></pre>
+          {% else %}
+            <p class="text-muted small">No request body (GET/DELETE).</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card glass border-0">
+        <div class="card-body">
+          <h6 class="text-white mb-3"><i class="bi bi-arrow-down me-2"></i>Response Body</h6>
+          {% if entry.response_body %}
+            <pre class="bg-dark p-3 rounded small text-success" style="max-height: 500px; overflow:auto;"><code>{{ entry.response_body }}</code></pre>
+          {% else %}
+            <p class="text-muted small">No response body recorded.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

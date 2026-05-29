@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
-from app.utils.models import db, User, ServiceProvider
+from app.utils.models import db, User, ServiceProvider, ensure_schema
 from app.utils.config_manager import config_manager
 from app.utils.logger_main import logger
 import uuid
@@ -119,17 +119,40 @@ def create_app():
     db.init_app(app)
     csrf.init_app(app)
 
+    # Make ENABLE_SCIM visible to every template — drives nav-link visibility.
+    @app.context_processor
+    def inject_scim_flag():
+        return {"scim_enabled": config_manager.ENABLE_SCIM}
+
     with app.app_context():
         from app.routes.metadata import metadata_bp
         from app.routes.auth import auth_bp
         from app.routes.admin import admin_bp
-        
+
         app.register_blueprint(metadata_bp)
         app.register_blueprint(auth_bp)
         app.register_blueprint(admin_bp)
-        
+
+        # Import SCIM models before create_all() so their tables get created
+        # in the same pass. The import is no-op-cheap when SCIM is off — it
+        # just defines SQLAlchemy classes; no routes or workers start.
+        if config_manager.ENABLE_SCIM:
+            from app.utils import models_scim  # noqa: F401
+
         db.create_all()
+        ensure_schema(db.engine)
         seed_default_data()
+
+        if config_manager.ENABLE_SCIM:
+            from app.routes.scim import register_scim_blueprints
+            register_scim_blueprints(app, csrf)
+            logger.info(
+                "SCIM endpoints enabled at %s (server) and /admin/scim (admin UI)",
+                config_manager.SCIM_BASE_PATH,
+            )
+        else:
+            logger.info("SCIM disabled (set ENABLE_SCIM=true to enable).")
+
         logger.info("Application initialized and database created.")
 
     return app

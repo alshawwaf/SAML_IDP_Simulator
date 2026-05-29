@@ -1,20 +1,21 @@
-# 🛡️ SAML IDP Simulator for Check Point
+# 🛡️ SAML + SCIM IDP Simulator for Check Point
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![SAML 2.0](https://img.shields.io/badge/SAML-2.0-green)](https://en.wikipedia.org/wiki/SAML_2.0)
+[![SCIM 2.0](https://img.shields.io/badge/SCIM-2.0-blueviolet)](https://datatracker.ietf.org/doc/html/rfc7644)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
 ## 🚀 Overview
 
-The **SAML IDP Simulator** is a modern Identity Provider emulator tailored for **Check Point environments** (Harmony, Quantum, CloudGuard, SASE). It provides a **production-grade SAML SSO experience** for:
+The **SAML IDP Simulator** is a modern Identity Provider emulator tailored for **Check Point environments** (Harmony, Quantum, CloudGuard, SASE). It provides a **production-grade SAML SSO experience** plus an optional **SCIM 2.0 provisioning surface** for:
 
 - Security PoCs
 - Workshops and demos
-- Integration testing
+- Integration testing — including **Harmony SASE SCIM provisioning**
 
-✨ Featuring a full-featured **web admin portal**, **dynamic attribute mapping**, and **realistic SAML flows**, it's your best tool for simulating enterprise SAML logins.
+✨ Featuring a full-featured **web admin portal**, **dynamic attribute mapping**, **realistic SAML flows**, and **bidirectional SCIM** (acts as both a SCIM server *and* a client that pushes to upstream SCIM endpoints like Harmony SASE).
 
 ---
 
@@ -158,6 +159,7 @@ FLASK_DEBUG=1
 
 ## 🔄 Endpoints
 
+### SAML
 | Endpoint           | Description                      |
 |--------------------|----------------------------------|
 | `/sso`             | Handles incoming AuthnRequest    |
@@ -166,6 +168,17 @@ FLASK_DEBUG=1
 | `/metadata`        | SAML metadata XML                |
 | `/download-cert`   | Public certificate download      |
 | `/admin`           | Admin UI                         |
+
+### SCIM 2.0 (only when `ENABLE_SCIM=true`)
+| Endpoint                          | Description                                  |
+|-----------------------------------|----------------------------------------------|
+| `/scim/v2/ServiceProviderConfig`  | RFC 7644 §5 capability advertisement         |
+| `/scim/v2/ResourceTypes`          | User + Group resource types                  |
+| `/scim/v2/Schemas`                | Schema definitions                           |
+| `/scim/v2/Users` (+ `/<id>`)      | GET/POST/PUT/PATCH/DELETE, bearer auth       |
+| `/scim/v2/Groups` (+ `/<id>`)     | Same — full CRUD                             |
+| `/scim/v2/.search`                | POST search across User + Group              |
+| `/admin/scim/`                    | Admin UI: targets, tokens, push log          |
 
 ---
 
@@ -182,6 +195,34 @@ FLASK_DEBUG=1
    - Start login from SmartConsole → simulate SSO
 
 ✅ Ensure the user exists in both systems.
+
+---
+
+## 🔁 SCIM 2.0 (optional)
+
+The simulator can also speak SCIM 2.0 — both as a **server** (so Entra ID / Okta can push users into it) and as a **client** (so it can push users out to a Check Point Harmony SASE tenant).
+
+**Enable it:**
+
+```bash
+# Generate an encryption key for stored bearer tokens
+SCIM_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+
+# Add to .env (or to your Dokploy environment)
+ENABLE_SCIM=true
+SCIM_ENCRYPTION_KEY=<the key above>
+# Optional: auto-push admin user CRUD to enabled SCIM targets
+SCIM_PUSH_ON_USER_CHANGE=false
+```
+
+When `ENABLE_SCIM=true`:
+- `/scim/v2/{Users,Groups,ServiceProviderConfig,ResourceTypes,Schemas,.search}` exposed with bearer-token auth
+- A new **SCIM** dropdown appears in the admin nav: manage outbound targets (Harmony tenants), inbound bearer tokens, and inspect the SCIM push log
+- Round-trip with Entra ID, Okta, and JumpCloud-style SCIM clients
+
+When `ENABLE_SCIM=false` (the default), the SAML flow runs exactly as before — no new tables created, no new routes registered.
+
+See [docs/SCIM_PLAN.md](docs/SCIM_PLAN.md) for the full design, Harmony SASE quirks, and compliance notes.
 
 ---
 

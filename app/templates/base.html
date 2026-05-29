@@ -29,6 +29,24 @@
       {% if session.get('admin_logged_in') %}
       <a href="{{ url_for('admin.user_management') }}" class="nav-link">Users</a>
       <a href="{{ url_for('admin.list_sps') }}" class="nav-link">Service Providers</a>
+      {% if scim_enabled %}
+      <div class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-arrow-left-right me-1"></i>SCIM
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+          <li><a class="dropdown-item text-white" href="{{ url_for('scim_admin.list_targets') }}">
+            <i class="bi bi-cloud-upload me-2"></i>Outbound Targets
+          </a></li>
+          <li><a class="dropdown-item text-white" href="{{ url_for('scim_admin.list_inbound_tokens') }}">
+            <i class="bi bi-key me-2"></i>Inbound Tokens
+          </a></li>
+          <li><a class="dropdown-item text-white" href="{{ url_for('scim_admin.push_log') }}">
+            <i class="bi bi-journal-text me-2"></i>Push Log
+          </a></li>
+        </ul>
+      </div>
+      {% endif %}
       <a href="{{ url_for('admin.idp_config') }}" class="nav-link">
         <i class="bi bi-gear-wide-connected me-1"></i>IDP Config
       </a>

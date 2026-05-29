@@ -34,6 +34,12 @@ class ConfigManager:
         self.DEFAULT_SP_ENTITY_ID = os.getenv("DEFAULT_SP_ENTITY_ID")
         self.DEFAULT_SP_ACS_URL = os.getenv("DEFAULT_SP_ACS_URL")
 
+        # SCIM 2.0 — disabled by default; SAML flow is unaffected when false
+        self.ENABLE_SCIM = os.getenv("ENABLE_SCIM", "false").lower() == "true"
+        self.SCIM_BASE_PATH = os.getenv("SCIM_BASE_PATH", "/scim/v2")
+        self.SCIM_ENCRYPTION_KEY = os.getenv("SCIM_ENCRYPTION_KEY")
+        self.SCIM_PUSH_ON_USER_CHANGE = os.getenv("SCIM_PUSH_ON_USER_CHANGE", "false").lower() == "true"
+
     def get_all_config(self):
         """Returns all configuration as a dictionary for template rendering"""
         return {k: v for k, v in self.__dict__.items() if not k.startswith('_')}

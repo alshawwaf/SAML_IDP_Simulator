@@ -143,8 +143,6 @@ In the Check Point SASE admin portal:
 
 **Settings → Identity Providers → + Add Provider**
 
-![Check Point SASE Identity Providers page](guide/images/04-cp-idp-list.png)
-
 ### 5.2 Pick Microsoft Entra ID
 
 In the "Add identity provider" modal, you'll see 5 options:

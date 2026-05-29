@@ -1,4 +1,4 @@
-# 🛡️ Identity Simulator for Check Point
+# 🛡️ SAML + SCIM IDP Simulator for Check Point
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![SAML 2.0](https://img.shields.io/badge/SAML-2.0-green)](https://en.wikipedia.org/wiki/SAML_2.0)
@@ -9,7 +9,7 @@
 
 ## 🚀 Overview
 
-The **Identity Simulator** (formerly SAML IDP Simulator) is a modern Identity Provider emulator tailored for **Check Point environments** (Quantum, CloudGuard, and Check Point SASE — formerly Check Point SASE). It provides a **production-grade SAML SSO experience** plus an optional **SCIM 2.0 provisioning surface** for:
+The **SAML + SCIM IDP Simulator** is a modern Identity Provider emulator tailored for **Check Point environments** (Quantum, CloudGuard, and Check Point SASE — formerly Harmony SASE). It provides a **production-grade SAML SSO experience** plus an optional **SCIM 2.0 provisioning surface** for:
 
 - Security PoCs
 - Workshops and demos

@@ -1,11 +1,52 @@
+import os
+import shutil
+import uuid
+
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
+
 from app.utils.models import db, User, ServiceProvider, ensure_schema
 from app.utils.config_manager import config_manager
 from app.utils.logger_main import logger
-import uuid
+from app.utils.path_config import BASE_DIR
 
 csrf = CSRFProtect()
+
+
+# Persistent DB location. /app/data is mounted to a Docker volume in
+# docker-compose.yml (saml_idp_data), so the SQLite file survives container
+# rebuilds. The legacy location was /app/app.db (NOT on the volume) — every
+# Dokploy redeploy wiped it. _migrate_legacy_db() handles the one-time move.
+PERSIST_DIR = BASE_DIR / "data"
+DB_FILE = PERSIST_DIR / "app.db"
+LEGACY_DB_FILE = BASE_DIR / "app.db"
+
+
+def _migrate_legacy_db():
+    """If a legacy /app/app.db exists and the new /app/data/app.db does not,
+    copy it over so the operator keeps existing users/SPs/SCIM targets through
+    the relocation. Idempotent — does nothing once /app/data/app.db exists.
+    """
+    try:
+        PERSIST_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        logger.warning("Could not create persist dir %s: %s", PERSIST_DIR, e)
+        return
+
+    if DB_FILE.exists():
+        return  # already migrated (or fresh install on the new layout)
+
+    if LEGACY_DB_FILE.exists() and LEGACY_DB_FILE.stat().st_size > 0:
+        try:
+            shutil.copy2(LEGACY_DB_FILE, DB_FILE)
+            logger.info(
+                "Migrated legacy DB from %s to %s (size %d bytes). "
+                "The legacy file is kept as a one-time backup; remove it "
+                "once you've confirmed the new DB works.",
+                LEGACY_DB_FILE, DB_FILE, LEGACY_DB_FILE.stat().st_size,
+            )
+        except OSError as e:
+            logger.error("Failed to migrate legacy DB: %s", e)
 
 def seed_default_data():
     """Create default users and service providers if database is empty
@@ -113,8 +154,13 @@ def seed_default_data():
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = config_manager.SECRET_KEY
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../app.db'
+
+    # Migrate any pre-volume DB into the persisted volume BEFORE SQLAlchemy
+    # opens the file, then point at the new location.
+    _migrate_legacy_db()
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DB_FILE}"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    logger.info("Database file: %s", DB_FILE)
 
     db.init_app(app)
     csrf.init_app(app)

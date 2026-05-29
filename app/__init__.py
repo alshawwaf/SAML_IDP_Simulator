@@ -145,7 +145,11 @@ def create_app():
 
         if config_manager.ENABLE_SCIM:
             from app.routes.scim import register_scim_blueprints
+            from app.routes.scim.bootstrap import seed_default_scim_data
             register_scim_blueprints(app, csrf)
+            seed_default_scim_data()
+            if config_manager.SCIM_ENCRYPTION_KEY_DERIVED:
+                logger.info("SCIM encryption key auto-derived from SECRET_KEY (override with SCIM_ENCRYPTION_KEY env var)")
             logger.info(
                 "SCIM endpoints enabled at %s (server) and /admin/scim (admin UI)",
                 config_manager.SCIM_BASE_PATH,

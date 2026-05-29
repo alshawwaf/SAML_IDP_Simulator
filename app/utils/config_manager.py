@@ -37,8 +37,23 @@ class ConfigManager:
         # SCIM 2.0 — disabled by default; SAML flow is unaffected when false
         self.ENABLE_SCIM = os.getenv("ENABLE_SCIM", "false").lower() == "true"
         self.SCIM_BASE_PATH = os.getenv("SCIM_BASE_PATH", "/scim/v2")
-        self.SCIM_ENCRYPTION_KEY = os.getenv("SCIM_ENCRYPTION_KEY")
         self.SCIM_PUSH_ON_USER_CHANGE = os.getenv("SCIM_PUSH_ON_USER_CHANGE", "false").lower() == "true"
+
+        # Encryption key for outbound SCIM bearer tokens at rest.
+        # If not explicitly set, derive a stable Fernet key from SECRET_KEY so
+        # the operator only has to think about ENABLE_SCIM=true.
+        explicit_scim_key = os.getenv("SCIM_ENCRYPTION_KEY")
+        if explicit_scim_key:
+            self.SCIM_ENCRYPTION_KEY = explicit_scim_key
+            self.SCIM_ENCRYPTION_KEY_DERIVED = False
+        else:
+            import base64
+            import hashlib
+            derived = hashlib.sha256(
+                (self.SECRET_KEY + "::scim-token-fernet-v1").encode("utf-8")
+            ).digest()
+            self.SCIM_ENCRYPTION_KEY = base64.urlsafe_b64encode(derived).decode("ascii")
+            self.SCIM_ENCRYPTION_KEY_DERIVED = True
 
     def get_all_config(self):
         """Returns all configuration as a dictionary for template rendering"""

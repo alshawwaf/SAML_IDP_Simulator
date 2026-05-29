@@ -30,18 +30,30 @@
 
             <div class="mb-3">
               <label class="form-label">SCIM Base URL</label>
-              <input type="url" name="base_url" class="form-control bg-dark text-white border-secondary"
+              <input type="url" name="base_url" id="base_url" class="form-control bg-dark text-white border-secondary"
                      placeholder="https://api.perimeter81.com/api/scim"
                      value="{{ target.base_url if target else '' }}" required>
-              <div class="form-text text-muted small">
+              <div class="form-text text-muted small mb-2">
                 The simulator appends <code>/Users</code>, <code>/Groups</code>, etc. to this base.
-                <strong>Check Point Harmony SASE bases:</strong>
-                <ul class="mt-1 mb-0 small">
-                  <li>US: <code>https://api.perimeter81.com/api/scim</code></li>
-                  <li>EU: <code>https://api.eu.sase.checkpoint.com/api/scim</code></li>
-                  <li>AU: <code>https://api.au.sase.checkpoint.com/api/scim</code></li>
-                  <li>IN: <code>https://api.in.sase.checkpoint.com/api/scim</code></li>
-                </ul>
+              </div>
+              <div class="d-flex flex-wrap gap-1">
+                <span class="small text-muted me-1 align-self-center">Quick fill — Harmony SASE:</span>
+                <button type="button" class="btn btn-outline-info btn-sm"
+                        onclick="document.getElementById('base_url').value='https://api.perimeter81.com/api/scim'">
+                  <i class="bi bi-globe-americas me-1"></i>US
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm"
+                        onclick="document.getElementById('base_url').value='https://api.eu.sase.checkpoint.com/api/scim'">
+                  <i class="bi bi-globe-europe-africa me-1"></i>EU
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm"
+                        onclick="document.getElementById('base_url').value='https://api.au.sase.checkpoint.com/api/scim'">
+                  <i class="bi bi-globe-asia-australia me-1"></i>AU
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm"
+                        onclick="document.getElementById('base_url').value='https://api.in.sase.checkpoint.com/api/scim'">
+                  <i class="bi bi-globe-asia-australia me-1"></i>IN
+                </button>
               </div>
             </div>
 

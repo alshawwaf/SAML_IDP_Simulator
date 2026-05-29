@@ -11,6 +11,7 @@ from flask import (
     session, url_for,
 )
 
+from app.routes.scim.bootstrap import clear_bootstrap_token, read_bootstrap_token
 from app.routes.scim.client import ScimClient, ScimClientError
 from app.utils.crypto import (
     encrypt_token, generate_inbound_token, hash_inbound_token,
@@ -47,7 +48,19 @@ def dashboard():
         targets=targets,
         inbound_tokens=inbound,
         recent_log=recent_log,
+        bootstrap_token=read_bootstrap_token(),
     )
+
+
+@scim_admin_bp.route("/bootstrap-token/ack", methods=["POST"])
+@_admin_required
+def acknowledge_bootstrap_token():
+    """Operator confirmed they copied the auto-generated token — delete the file."""
+    if clear_bootstrap_token():
+        flash("Bootstrap token file deleted. Manage tokens at /admin/scim/inbound-tokens.", "success")
+    else:
+        flash("Bootstrap token file already absent.", "success")
+    return redirect(url_for("scim_admin.dashboard"))
 
 
 # --- Outbound targets --------------------------------------------------------

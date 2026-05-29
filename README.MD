@@ -202,22 +202,22 @@ FLASK_DEBUG=1
 
 The simulator can also speak SCIM 2.0 — both as a **server** (so Entra ID / Okta can push users into it) and as a **client** (so it can push users out to a Check Point Harmony SASE tenant).
 
-**Enable it:**
+**Enable it — one variable:**
 
 ```bash
-# Generate an encryption key for stored bearer tokens
-SCIM_ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
-
-# Add to .env (or to your Dokploy environment)
+# Add to .env (or your Dokploy environment)
 ENABLE_SCIM=true
-SCIM_ENCRYPTION_KEY=<the key above>
-# Optional: auto-push admin user CRUD to enabled SCIM targets
-SCIM_PUSH_ON_USER_CHANGE=false
 ```
+
+That's it. On first boot the simulator will:
+- Derive the token-encryption key from `SECRET_KEY` (no manual `SCIM_ENCRYPTION_KEY` needed — set one explicitly only if you want to decouple from `SECRET_KEY` rotation)
+- Auto-generate a default inbound bearer token, log it prominently in the startup log, and write it to `data/.scim-bootstrap-token` for retrieval
+- Surface the token in a banner on the SCIM admin dashboard the first time you visit it (click "Acknowledge" to delete the bootstrap file)
 
 When `ENABLE_SCIM=true`:
 - `/scim/v2/{Users,Groups,ServiceProviderConfig,ResourceTypes,Schemas,.search}` exposed with bearer-token auth
 - A new **SCIM** dropdown appears in the admin nav: manage outbound targets (Harmony tenants), inbound bearer tokens, and inspect the SCIM push log
+- One-click Harmony SASE region presets (US / EU / AU / IN) on the target form
 - Round-trip with Entra ID, Okta, and JumpCloud-style SCIM clients
 
 When `ENABLE_SCIM=false` (the default), the SAML flow runs exactly as before — no new tables created, no new routes registered.

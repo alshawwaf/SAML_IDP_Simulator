@@ -131,6 +131,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Runtime data — SCIM bootstrap token, future state files
+data/
+
 # Spyder project settings
 .spyderproject
 .spyproject

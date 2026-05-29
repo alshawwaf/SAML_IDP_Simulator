@@ -13,7 +13,7 @@ Drop your PNG screenshots in this directory with the exact filenames below. Both
 | 5 | `05-cp-idp-picker.png` | ✅ Present | The "Add identity provider" modal with Microsoft Entra ID highlighted |
 | 6 | `06-cp-entra-form.png` | ✅ Present | The Microsoft Entra ID form filled with dummy values and **SCIM Integration** checked |
 | 7 | `07-cp-idp-added.png` | ✅ Present | Identity Providers page after adding Entra — "SCIM Integration: On" visible |
-| 8 | `08-cp-scim-settings.png` | **TODO** | The SCIM Settings panel with Tenant URL + "Generate Token" button |
+| 8 | `08-cp-scim-settings.png` | ✅ Present | The SCIM Settings panel with Tenant URL + "Generate Token" button |
 | 9 | `09-sim-scim-nav.png` | ✅ Present | Simulator admin nav with the SCIM dropdown open |
 | 10 | `10-sim-add-target.png` | **TODO** | The Add SCIM Target form with the US region preset clicked |
 | 11 | `11-sim-sync-success.png` | ✅ Present | Outbound Targets page with the green "Sync to ...: N created, N updated, 0 errored" banner |

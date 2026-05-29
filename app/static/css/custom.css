@@ -95,6 +95,24 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff !important;
 }
 
+/* Circular icon badges used in admin tables (User Management, SP list).
+   The `rounded-circle p-2` Bootstrap combo renders as an oval because the
+   inner <i> glyph's intrinsic width and height aren't equal. Force a
+   square hit area with a flex-centered icon so it's actually round. */
+.rounded-circle.p-2 {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 !important;
+  flex-shrink: 0;
+}
+.rounded-circle.p-2 > i.bi {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
 .card {
   background: rgba(255, 255, 255, 0.03) !important;
   backdrop-filter: blur(16px) !important;

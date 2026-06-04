@@ -48,7 +48,7 @@
             <div class="bg-primary bg-opacity-25 rounded p-3"><i class="bi bi-cloud-upload fs-4"></i></div>
             <div>
               <div class="text-muted small text-uppercase">Outbound Targets</div>
-              <div class="fs-3 fw-bold">{{ targets | length }}</div>
+              <div class="fs-3 fw-bold text-white">{{ targets | length }}</div>
               <a href="{{ url_for('scim_admin.list_targets') }}" class="small">Manage →</a>
             </div>
           </div>
@@ -62,7 +62,7 @@
             <div class="bg-success bg-opacity-25 rounded p-3"><i class="bi bi-key fs-4"></i></div>
             <div>
               <div class="text-muted small text-uppercase">Inbound Tokens</div>
-              <div class="fs-3 fw-bold">{{ inbound_tokens | length }}</div>
+              <div class="fs-3 fw-bold text-white">{{ inbound_tokens | length }}</div>
               <a href="{{ url_for('scim_admin.list_inbound_tokens') }}" class="small">Manage →</a>
             </div>
           </div>
@@ -76,7 +76,7 @@
             <div class="bg-info bg-opacity-25 rounded p-3"><i class="bi bi-journal-text fs-4"></i></div>
             <div>
               <div class="text-muted small text-uppercase">Recent Pushes</div>
-              <div class="fs-3 fw-bold">{{ recent_log | length }}</div>
+              <div class="fs-3 fw-bold text-white">{{ recent_log | length }}</div>
               <a href="{{ url_for('scim_admin.push_log') }}" class="small">View log →</a>
             </div>
           </div>

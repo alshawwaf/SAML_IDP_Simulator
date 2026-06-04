@@ -619,3 +619,18 @@ code {
     color: var(--text-muted) !important;
     opacity: 0.7 !important;
 }
+
+/* Dark-theme text-color safety net.
+   Bootstrap's default body color (#212529) leaks into bare text inside cards
+   (headings, <dd> values, empty-state messages) and renders it nearly
+   invisible on our dark background. Force the light theme colour for elements
+   that are never intentionally dark here. (Coloured children like <code>,
+   .text-primary, badges, and dark-on-yellow buttons keep their own colour.) */
+.card-body h1, .card-body h2, .card-body h3,
+.card-body h4, .card-body h5, .card-body h6 {
+    color: var(--text-primary);
+}
+.card-body dd,
+.card-body p:not([class*="text-"]) {
+    color: var(--text-secondary);
+}

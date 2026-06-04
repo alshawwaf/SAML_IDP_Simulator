@@ -83,7 +83,11 @@
         <dd class="col-sm-9"><code>{{ config.SSO_SERVICE_URL }}</code></dd>
 
         <dt class="col-sm-3 text-muted">SCIM enabled</dt>
-        <dd class="col-sm-9">{{ 'Yes' if config.ENABLE_SCIM else 'No' }}</dd>
+        <dd class="col-sm-9">
+          <span class="badge bg-{{ 'success' if config.ENABLE_SCIM else 'secondary' }}">
+            {{ 'Yes' if config.ENABLE_SCIM else 'No' }}
+          </span>
+        </dd>
       </dl>
     </div>
   </div>

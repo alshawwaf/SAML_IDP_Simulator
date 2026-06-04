@@ -3,53 +3,46 @@
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero text-center pt-4 pb-0">
-    <div class="container py-0 mt-0">
-        <div class="badge bg-primary bg-opacity-20 text-white mb-2 px-4 py-2 border border-primary border-opacity-30 small text-uppercase tracking-widest">SAML 2.0 + SCIM 2.0</div>
-        <h1 class="text-gradient display-3 fw-bold mb-2" style="line-height: 1.1;">Identity Provider<br>Made Simple.</h1>
-        <p class="text-white opacity-50 fs-4 mb-3 mx-auto" style="max-width: 800px;">A premium environment to test, simulate, and debug secure SAML SSO and SCIM provisioning integrations with precision.</p>
+<section class="hero text-center">
+    <div class="container hero-inner mx-auto stagger">
+        <span class="eyebrow"><span class="dot"></span>SAML 2.0 &nbsp;·&nbsp; SCIM 2.0</span>
+        <h1 class="hero-title text-gradient">Identity Provider,<br>made simple.</h1>
+        <p class="hero-sub mx-auto">Test, simulate, and debug Check Point SAML SSO and SCIM provisioning integrations — from one self-hosted IdP.</p>
 
-        <!-- Primary Actions -->
-        <div class="d-flex flex-wrap justify-content-center gap-4 pt-2">
-            <a href="/download-metadata" class="btn btn-primary btn-lg shadow-lg">
-                <i class="bi bi-download"></i> Download Metadata
+        <div class="hero-actions">
+            <a href="/download-metadata" class="btn btn-primary btn-lg">
+                <i class="bi bi-download me-2"></i>Download Metadata
             </a>
             <button type="button" id="viewMetadataBtn" class="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#metadataModal">
-                <i class="bi bi-code-slash"></i> View XML
+                <i class="bi bi-code-slash me-2"></i>View XML
             </button>
         </div>
     </div>
 </section>
 
 <!-- Features -->
-<section class="py-5">
+<section class="features">
     <div class="container">
-        <div class="row g-4 justify-content-center">
+        <div class="row g-3 g-md-4 stagger">
             <div class="col-md-4">
-                <div class="card h-100 p-5 border-0 bg-transparent">
-                    <div class="mb-4 d-inline-flex p-3 rounded-4 bg-primary bg-opacity-10 text-primary" style="width: fit-content;">
-                        <i class="bi bi-layers-half fs-2"></i>
-                    </div>
-                    <h3 class="h4 text-white mb-3">SP Integration</h3>
-                    <p class="text-white opacity-50 mb-0">Seamlessly add and manage Service Providers. Configure claims, attributes, and response parameters in real-time.</p>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-shield-lock"></i></div>
+                    <h3>SAML 2.0 SSO</h3>
+                    <p>SP-initiated single sign-on with signed assertions, multi-SP support, and dynamic claim-to-attribute mapping.</p>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card h-100 p-5 border-0 bg-transparent">
-                    <div class="mb-4 d-inline-flex p-3 rounded-4 bg-primary bg-opacity-10 text-primary" style="width: fit-content;">
-                        <i class="bi bi-people fs-2"></i>
-                    </div>
-                    <h3 class="h4 text-white mb-3">User Management</h3>
-                    <p class="text-white opacity-50 mb-0">Control your testing environment with fine-grained user management and group assignments for robust simulation.</p>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-arrow-left-right"></i></div>
+                    <h3>SCIM 2.0 Provisioning</h3>
+                    <p>Bidirectional provisioning — receive pushes from Entra ID or Okta, and sync users out to Check Point SASE.</p>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card h-100 p-5 border-0 bg-transparent">
-                    <div class="mb-4 d-inline-flex p-3 rounded-4 bg-primary bg-opacity-10 text-primary" style="width: fit-content;">
-                        <i class="bi bi-fingerprint fs-2"></i>
-                    </div>
-                    <h3 class="h4 text-white mb-3">Security First</h3>
-                    <p class="text-white opacity-50 mb-0">Built-in certificate generation and secure handling of SAML assertions to ensure your integrations remain safe.</p>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="bi bi-people"></i></div>
+                    <h3>Users &amp; Admin</h3>
+                    <p>Fine-grained user and group management, one-click metadata and certificate download, and a full push audit log.</p>
                 </div>
             </div>
         </div>

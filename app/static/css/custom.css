@@ -2,24 +2,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Absolute black background */
-  --bg-deep: #000000;
-  --bg-dark: #050505;
-  --bg-surface: #0a0a0a;
-  --bg-elevated: #111111;
+  /* Near-black with a faint blue cast — softer than pure #000 */
+  --bg-deep: #060609;
+  --bg-dark: #0a0a10;
+  --bg-surface: #0e0e15;
+  --bg-elevated: #14141d;
 
   /* Cool blue/cyan palette */
-  --primary: #2563eb;            /* Blue 600 */
+  --primary: #3b82f6;            /* Blue 500 — brighter, more modern */
   --primary-light: #60a5fa;      /* Blue 400 */
-  --primary-glow: rgba(37, 99, 235, 0.4);
+  --primary-dim: #2563eb;        /* Blue 600 */
+  --primary-glow: rgba(59, 130, 246, 0.35);
   --secondary: #06b6d4;          /* Cyan 500 */
   --secondary-light: #22d3ee;    /* Cyan 400 */
-  --accent: #6366f1;             /* Indigo 500 (used for the third radial) */
+  --accent: #818cf8;             /* Indigo 400 */
 
-  --text-primary: #ffffff;
-  --text-secondary: #e5e5e5;
-  --text-muted: #888888;
+  --text-primary: #f4f6fb;
+  --text-secondary: #c9cedb;
+  --text-muted: #8b91a3;
+  --text-faint: #5b6072;
 
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-hover: rgba(96, 165, 250, 0.4);
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
   --radius-xl: 24px;
 }
 
@@ -30,27 +38,40 @@ body {
   margin: 0;
   overflow-x: hidden;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Outfit', sans-serif;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
+/* Layered background: toned-down mesh + a fine dot grid that fades out */
 .landing-bg {
   position: fixed;
   inset: 0;
-  background: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37, 99, 235, 0.2) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 0% 80%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
-    var(--bg-deep);
   z-index: -1;
+  background:
+    radial-gradient(55% 45% at 50% -5%, rgba(59, 130, 246, 0.16) 0%, transparent 60%),
+    radial-gradient(40% 40% at 88% 25%, rgba(6, 182, 212, 0.10) 0%, transparent 60%),
+    radial-gradient(45% 45% at 8% 80%, rgba(129, 140, 248, 0.08) 0%, transparent 60%),
+    var(--bg-deep);
+}
+.landing-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 34px 34px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 55% at 50% 25%, #000 0%, transparent 80%);
+  mask-image: radial-gradient(ellipse 75% 55% at 50% 25%, #000 0%, transparent 80%);
+  pointer-events: none;
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%) !important;
+  background: linear-gradient(120deg, #ffffff 0%, var(--primary-light) 55%, var(--secondary-light) 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
@@ -58,12 +79,152 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .navbar {
-  background: rgba(255, 255, 255, 0.02) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: var(--radius-xl);
-  margin: 1rem 1.5rem;
-  padding: 0.875rem 1.5rem;
+  background: rgba(10, 10, 16, 0.55) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg);
+  margin: 0.85rem 1.25rem;
+  padding: 0.65rem 1.35rem;
+}
+.navbar-brand .text-gradient {
+  font-size: 1.4rem !important;
+  letter-spacing: -0.03em;
+}
+
+/* ===================== Landing hero ===================== */
+
+.hero {
+  padding-top: 3.5rem;
+  padding-bottom: 1rem;
+}
+.hero-inner {
+  max-width: 760px;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--primary-light);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 100px;
+}
+.eyebrow .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--secondary-light);
+  box-shadow: 0 0 8px var(--secondary-light) !important;
+  animation: pulse 2.2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.hero-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.25rem, 4.6vw, 3.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  margin: 1.1rem 0 0.85rem;
+}
+.hero-sub {
+  font-size: clamp(1rem, 1.5vw, 1.12rem);
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 600px;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.85rem;
+  margin-top: 1.75rem;
+}
+
+/* ===================== Feature cards ===================== */
+
+.features { padding: 3.5rem 0 4rem; }
+
+.feature-card {
+  position: relative;
+  height: 100%;
+  padding: 1.6rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)) !important;
+  border: 1px solid var(--border-subtle) !important;
+  transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-hover) !important;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.07), rgba(255, 255, 255, 0.018)) !important;
+}
+/* gradient hairline ring that appears on hover */
+.feature-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.45), transparent 45%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.feature-card:hover::before { opacity: 1; }
+
+.feature-icon {
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  font-size: 1.3rem;
+  color: var(--primary-light);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(6, 182, 212, 0.16));
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  margin-bottom: 1.1rem;
+}
+.feature-card h3 {
+  font-size: 1.12rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+.feature-card p {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ===================== Entrance animation ===================== */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-fade-in { animation: fadeUp 0.6s ease both; }
+
+/* Staggered children (hero elements, card grid) */
+.stagger > * { animation: fadeUp 0.6s ease both; }
+.stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger > *:nth-child(2) { animation-delay: 0.12s; }
+.stagger > *:nth-child(3) { animation-delay: 0.20s; }
+.stagger > *:nth-child(4) { animation-delay: 0.28s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in, .stagger > *, .eyebrow .dot { animation: none !important; }
 }
 
 /* Dropdown menus — Bootstrap's default light hover blanks the white text
@@ -116,37 +277,56 @@ h1, h2, h3, h4, h5, h6 {
 .card {
   background: rgba(255, 255, 255, 0.03) !important;
   backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: var(--radius-xl);
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg);
+  transition: transform 0.25s ease, border-color 0.25s ease;
 }
 
 .card:hover {
-  transform: translateY(-5px);
-  border-color: var(--primary) !important;
+  transform: translateY(-3px);
+  border-color: var(--border-hover) !important;
+}
+
+/* Admin glass cards shouldn't lift on hover — only interactive landing cards do */
+.card.glass:hover { transform: none; }
+
+.btn {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
   border: none !important;
-  box-shadow: 0 4px 20px var(--primary-glow) !important;
-  border-radius: 12px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.75rem 2rem !important;
+  box-shadow: 0 6px 22px rgba(59, 130, 246, 0.30) !important;
+  color: #fff !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  padding: 0.65rem 1.5rem !important;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.42) !important;
+}
+
+.btn-lg {
+  padding: 0.8rem 1.75rem !important;
+  font-size: 1rem !important;
 }
 
 .btn-outline-light {
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    background: transparent !important;
-    border-radius: 12px !important;
-    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    color: var(--text-secondary) !important;
 }
 
 .btn-outline-light:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border-color: var(--primary) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    color: #fff !important;
+    transform: translateY(-2px);
 }
 
 /* Bootstrap Utility Overrides */

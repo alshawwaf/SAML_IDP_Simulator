@@ -100,6 +100,22 @@
 <script src="{{ url_for('static', filename='js/prism.js') }}"></script>
 <script src="{{ url_for('static', filename='js/prism-markup.min.js') }}"></script>
 
+<script>
+  // Modal stacking fix: relocate any modal to be a direct child of <body>
+  // right before it opens. The page content is wrapped in an animated
+  // (.animate-fade-in / transformed) container, which creates a stacking
+  // context that would trap a position:fixed modal *beneath* its own
+  // backdrop — making the close button unclickable. Moving the modal to
+  // <body> guarantees the modal (z-index 1055) sits above the backdrop
+  // (z-index 1050). Applies to every modal in the app.
+  document.addEventListener('show.bs.modal', function (e) {
+    var m = e.target;
+    if (m && m.classList && m.classList.contains('modal') && m.parentNode !== document.body) {
+      document.body.appendChild(m);
+    }
+  });
+</script>
+
 {% block scripts %}{% endblock %}
 
 </body>

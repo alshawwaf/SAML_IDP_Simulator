@@ -12,96 +12,110 @@
         </a>
     </div>
 
-    <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        
-        <!-- Identity Provider Settings -->
-        <div class="card glass border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
-                <h5 class="mb-0 text-white">
-                    <i class="bi bi-shield-check me-2 text-primary"></i>Identity Provider Settings
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted">Entity ID</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" 
-                               name="entity_id" value="{{ config.IDP_ENTITY_ID }}" required>
-                        <small class="text-muted">Unique identifier for your IdP</small>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted">SSO Service URL</label>
-                        <input type="url" class="form-control bg-dark text-white border-secondary" 
-                               name="sso_service_url" value="{{ config.SSO_SERVICE_URL }}" required>
-                        <small class="text-muted">Your IdP's SSO endpoint</small>
-                    </div>
+    <div class="alert alert-info border-0 glass mb-4">
+      <small><i class="bi bi-info-circle me-2"></i>
+        These values are <strong>read-only</strong>. The Entity ID and SSO Service URL are
+        auto-derived from this deployment's public URL (override with the
+        <code>IDP_ENTITY_ID</code> / <code>SSO_SERVICE_URL</code> env vars). Certificate paths
+        and server settings are fixed at deploy time. Use the buttons below to hand this IdP's
+        metadata to a Service Provider.
+      </small>
+    </div>
+
+    <!-- Identity Provider Settings -->
+    <div class="card glass border-0 mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
+            <h5 class="mb-0 text-white">
+                <i class="bi bi-shield-check me-2 text-primary"></i>Identity Provider
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Entity ID</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary"
+                           value="{{ config.IDP_ENTITY_ID }}" readonly>
+                    <small class="text-muted">Unique identifier for this IdP</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">SSO Service URL</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary"
+                           value="{{ config.SSO_SERVICE_URL }}" readonly>
+                    <small class="text-muted">Where SPs send users to sign in</small>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Certificate Information -->
-        <div class="card glass border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
-                <h5 class="mb-0 text-white">
-                    <i class="bi bi-file-earmark-lock me-2 text-success"></i>Certificate Configuration
-                </h5>
+    <!-- Certificate Information -->
+    <div class="card glass border-0 mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
+            <h5 class="mb-0 text-white">
+                <i class="bi bi-file-earmark-lock me-2 text-success"></i>Signing Certificate
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Certificate Path</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary"
+                           value="{{ config.CERT_PATH }}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Private Key Path</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary"
+                           value="{{ config.KEY_PATH }}" readonly>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted">Certificate Path</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" 
-                               name="cert_path" value="{{ config.CERT_PATH }}" readonly>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted">Private Key Path</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" 
-                               name="key_path" value="{{ config.KEY_PATH }}" readonly>
-                    </div>
+            <div class="mt-3">
+                <a href="{{ url_for('metadata.download_metadata') }}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-key me-1"></i>Download Certificate (in metadata)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Settings -->
+    <div class="card glass border-0 mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
+            <h5 class="mb-0 text-white">
+                <i class="bi bi-hdd-network me-2 text-info"></i>Server &amp; Provisioning
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Host</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary"
+                           value="{{ config.HOST }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Port</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary"
+                           value="{{ config.PORT }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Debug Mode</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary"
+                           value="{{ 'Enabled' if config.DEBUG else 'Disabled' }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">SCIM Provisioning</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary"
+                           value="{{ 'Enabled' if config.ENABLE_SCIM else 'Disabled' }}" readonly>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Server Settings -->
-        <div class="card glass border-0 mb-4">
-            <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
-                <h5 class="mb-0 text-white">
-                    <i class="bi bi-hdd-network me-2 text-info"></i>Server Settings
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <label class="form-label small text-muted">Host</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" 
-                               name="host" value="{{ config.HOST }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small text-muted">Port</label>
-                        <input type="number" class="form-control bg-dark text-white border-secondary" 
-                               name="port" value="{{ config.PORT }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small text-muted">Debug Mode</label>
-                        <select class="form-select bg-dark text-white border-secondary" name="debug">
-                            <option value="true" {{ 'selected' if config.DEBUG else '' }}>Enabled</option>
-                            <option value="false" {{ 'selected' if not config.DEBUG else '' }}>Disabled</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex gap-3">
-            <button type="submit" class="btn btn-primary px-4">
-                <i class="bi bi-save me-2"></i>Save Configuration
-            </button>
-            <button type="button" class="btn btn-outline-light" id="viewIdpMetadataBtn">
-                <i class="bi bi-code-slash me-2"></i>View Metadata
-            </button>
-        </div>
-    </form>
+    <div class="d-flex gap-3">
+        <a href="{{ url_for('metadata.download_metadata') }}" class="btn btn-primary px-4">
+            <i class="bi bi-download me-2"></i>Download Metadata
+        </a>
+        <button type="button" class="btn btn-outline-light" id="viewIdpMetadataBtn">
+            <i class="bi bi-code-slash me-2"></i>View Metadata XML
+        </button>
+    </div>
 </div>
 
 <!-- IDP Metadata Modal -->

@@ -67,28 +67,19 @@
     </div>
   </div>
 
-  <!-- Read-only IDP info -->
+  <!-- Account info -->
   <div class="card glass border-0">
     <div class="card-body">
-      <h5 class="text-white mb-3"><i class="bi bi-info-circle me-2"></i>IdP Configuration</h5>
-      <p class="small text-muted">These values are controlled by env vars at deploy time.</p>
-      <dl class="row small mb-0">
+      <h5 class="text-white mb-3"><i class="bi bi-person-badge me-2"></i>Admin Account</h5>
+      <dl class="row small mb-3">
         <dt class="col-sm-3 text-muted">Admin Username</dt>
         <dd class="col-sm-9"><code>{{ config.ADMIN_USERNAME }}</code></dd>
-
-        <dt class="col-sm-3 text-muted">Entity ID</dt>
-        <dd class="col-sm-9"><code>{{ config.IDP_ENTITY_ID }}</code></dd>
-
-        <dt class="col-sm-3 text-muted">SSO Service URL</dt>
-        <dd class="col-sm-9"><code>{{ config.SSO_SERVICE_URL }}</code></dd>
-
-        <dt class="col-sm-3 text-muted">SCIM enabled</dt>
-        <dd class="col-sm-9">
-          <span class="badge bg-{{ 'success' if config.ENABLE_SCIM else 'secondary' }}">
-            {{ 'Yes' if config.ENABLE_SCIM else 'No' }}
-          </span>
-        </dd>
       </dl>
+      <p class="small text-muted mb-0">
+        <i class="bi bi-info-circle me-1"></i>
+        Looking for Entity ID, SSO URL, certificate, or metadata?
+        See <a href="{{ url_for('admin.idp_config') }}">IDP Config</a>.
+      </p>
     </div>
   </div>
 </div>

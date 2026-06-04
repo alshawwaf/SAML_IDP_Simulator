@@ -18,17 +18,20 @@
                         
                         <div class="mb-3">
                             <label for="username" class="form-label small fw-bold text-uppercase tracking-wider">Username</label>
-                            <input type="text" class="form-control" 
-                                   id="username" name="username" 
+                            <input type="text" class="form-control"
+                                   id="username" name="username"
+                                   value="{{ username_value | default('', true) }}"
                                    placeholder="Enter your username"
+                                   autocomplete="username"
                                    required autofocus>
                         </div>
-                        
+
                         <div class="mb-4">
                             <label for="password" class="form-label small fw-bold text-uppercase tracking-wider">Password</label>
-                            <input type="password" class="form-control" 
-                                   id="password" name="password" 
+                            <input type="password" class="form-control"
+                                   id="password" name="password"
                                    placeholder="••••••••"
+                                   autocomplete="current-password"
                                    required>
                         </div>
                         

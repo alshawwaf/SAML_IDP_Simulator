@@ -298,13 +298,18 @@ def get_sp_xml(sp_id):
 def login():
     from app.utils.admin_password import verify_admin_password
     if request.method == 'POST':
-        username = request.form.get('username') or ''
+        username = (request.form.get('username') or '').strip()
         password = request.form.get('password') or ''
         if username == config_manager.ADMIN_USERNAME and verify_admin_password(password):
             session['admin_logged_in'] = True
             return redirect(url_for('admin.dashboard'))
         flash('Invalid credentials', 'error')
-    return render_template('admin/login.html')
+        # Echo the submitted username back so the operator can see exactly what
+        # was sent (catches password-manager autofilling the wrong username).
+        return render_template('admin/login.html', username_value=username)
+
+    # GET: pre-fill the expected admin username so there's no ambiguity.
+    return render_template('admin/login.html', username_value=config_manager.ADMIN_USERNAME)
 
 @admin_bp.route('/logout')
 def logout():

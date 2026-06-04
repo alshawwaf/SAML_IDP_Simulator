@@ -1,27 +1,87 @@
 import os
+import secrets
 from dotenv import load_dotenv
 from pathlib import Path
 from app.utils.path_config import BASE_DIR
+
+# Persistent location for the auto-generated admin password. Lives on the
+# saml_idp_data volume in Docker (mounted at /app/data), so it survives
+# redeploys. Operators can read it back via:
+#   docker exec <container> cat /app/data/.admin-password
+ADMIN_PASSWORD_FILE = BASE_DIR / "data" / ".admin-password"
+
+
+def _resolve_admin_password():
+    """Decide what the admin password should be on this boot.
+
+    Resolution order:
+      1. ADMIN_PASSWORD env var set explicitly → use it (operator override)
+      2. /app/data/.admin-password exists       → read it (persisted from a
+                                                  prior auto-generation)
+      3. otherwise                              → generate a strong random
+                                                  password, persist to file,
+                                                  log it loudly
+
+    Returns (password, was_auto_generated_this_boot).
+    """
+    explicit = os.getenv("ADMIN_PASSWORD")
+    if explicit:
+        return explicit, False
+
+    # Try to read a previously persisted auto-generated password.
+    try:
+        if ADMIN_PASSWORD_FILE.exists():
+            for line in reversed(ADMIN_PASSWORD_FILE.read_text().splitlines()):
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    return line, False
+    except OSError:
+        pass
+
+    # Generate a fresh one and persist.
+    new_pw = secrets.token_urlsafe(20)  # ~26 chars, URL-safe (no shell-escape risk)
+    try:
+        ADMIN_PASSWORD_FILE.parent.mkdir(parents=True, exist_ok=True)
+        ADMIN_PASSWORD_FILE.write_text(
+            "# Auto-generated admin portal password (first boot).\n"
+            "# Lives on the saml_idp_data volume so it survives redeploys.\n"
+            "# To lock in your own value, set ADMIN_PASSWORD in the Dokploy\n"
+            "# Environment tab and redeploy.\n"
+            "\n"
+            f"{new_pw}\n"
+        )
+        try:
+            ADMIN_PASSWORD_FILE.chmod(0o600)
+        except OSError:
+            pass  # best-effort on platforms without POSIX perms
+    except OSError:
+        # Filesystem write failed (e.g. read-only mount). The password is still
+        # valid for this boot; operator must capture it from the startup log.
+        pass
+
+    return new_pw, True
+
 
 class ConfigManager:
     def __init__(self):
         # Load environment variables from .env file in the root directory
         load_dotenv(BASE_DIR / ".env")
-        
+
         # Server Configuration
         self.PORT = int(os.getenv("IDP_PORT", 9001))
         self.HOST = os.getenv("IDP_HOST", "0.0.0.0")
         self.ENABLE_SSL = os.getenv("ENABLE_SSL", "true").lower() == "true"
         self.DEBUG = os.getenv("FLASK_DEBUG", "True").lower() == "true"
-        
+
         # Security & Identity
         self.SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production-" + os.urandom(8).hex())
         self.IDP_ENTITY_ID = os.getenv("IDP_ENTITY_ID", "https://idp.simulator")
         self.SSO_SERVICE_URL = os.getenv("SSO_SERVICE_URL", f"http://{self.HOST}:{self.PORT}/sso")
-        
-        # Admin Credentials (CHANGE THESE IN PRODUCTION via environment variables)
+
+        # Admin Credentials — see _resolve_admin_password() docstring.
         self.ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin@cpdemo.ca")
-        self.ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Cpwins!1@2026")
+        self.ADMIN_PASSWORD, self.ADMIN_PASSWORD_AUTO_GENERATED = _resolve_admin_password()
+        self.ADMIN_PASSWORD_FILE = ADMIN_PASSWORD_FILE
         
         # Certificate Paths
         self.CERT_PATH = os.getenv("CERT_PATH", "app/certs/idp-cert.pem")

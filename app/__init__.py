@@ -151,6 +151,29 @@ def seed_default_data():
         logger.info(f"Created {len(default_sps)} default service providers")
 
 
+def _log_admin_credentials():
+    """Surface the admin login at startup so operators don't have to guess.
+
+    Auto-generated passwords are printed in full (they're already visible
+    via /app/data/.admin-password, and operators need them somewhere to
+    actually log in). Explicit ADMIN_PASSWORD values are NOT echoed — the
+    operator set them and presumably knows what they are.
+    """
+    if config_manager.ADMIN_PASSWORD_AUTO_GENERATED:
+        logger.info("=" * 70)
+        logger.info("ADMIN portal credentials (auto-generated on first boot)")
+        logger.info("  Username: %s", config_manager.ADMIN_USERNAME)
+        logger.info("  Password: %s", config_manager.ADMIN_PASSWORD)
+        logger.info("  Saved to: %s", config_manager.ADMIN_PASSWORD_FILE)
+        logger.info("  Lock-in:  set ADMIN_PASSWORD in Dokploy Environment tab")
+        logger.info("=" * 70)
+    else:
+        logger.info(
+            "ADMIN portal: username=%s (password from ADMIN_PASSWORD env var)",
+            config_manager.ADMIN_USERNAME,
+        )
+
+
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = config_manager.SECRET_KEY
@@ -188,6 +211,7 @@ def create_app():
         db.create_all()
         ensure_schema(db.engine)
         seed_default_data()
+        _log_admin_credentials()
 
         if config_manager.ENABLE_SCIM:
             from app.routes.scim import register_scim_blueprints

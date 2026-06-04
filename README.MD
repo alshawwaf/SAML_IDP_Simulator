@@ -11,16 +11,29 @@ An Identity Provider emulator for Check Point demos and PoCs. Speaks SAML 2.0 (S
 
 ---
 
-## Default credentials
-
-These ship as defaults in `docker-compose.yml`. Override via env vars (`ADMIN_USERNAME`, `ADMIN_PASSWORD`) in Dokploy or `.env`.
+## Credentials
 
 ### Admin portal — `/admin/login`
 
-| | |
-|---|---|
-| **Username** | `admin@cpdemo.ca` |
-| **Password** | `Cpwins!1@2026` |
+The admin password is **auto-generated on first boot** and persisted across redeploys. Three ways to read it after deploying:
+
+1. **Startup log** — printed in a clearly-marked block:
+   ```
+   ======================================================================
+   ADMIN portal credentials (auto-generated on first boot)
+     Username: admin@cpdemo.ca
+     Password: <strong random password>
+     Saved to: /app/data/.admin-password
+     Lock-in:  set ADMIN_PASSWORD in Dokploy Environment tab
+   ======================================================================
+   ```
+2. **File on the persisted volume** (in Dokploy → Docker → container Terminal):
+   ```bash
+   cat /app/data/.admin-password
+   ```
+3. **Lock in your own** by setting `ADMIN_PASSWORD` in the Dokploy Environment tab and redeploying. If set, that value is used and the auto-generated one is ignored.
+
+The username defaults to `admin@cpdemo.ca`. Override via the `ADMIN_USERNAME` env var.
 
 ### Demo SAML users — used at the `/login` form when an SP triggers SSO
 
@@ -30,7 +43,7 @@ These ship as defaults in `docker-compose.yml`. Override via env vars (`ADMIN_US
 | `john.smith` | `john.smith@cpdemo.ca` | `Cpwins!1@2026` |
 | `jane.doe` | `jane.doe@cpdemo.ca` | `Cpwins!1@2026` |
 
-Change passwords after deploy via **Admin → Users → Reset Password**.
+These are seeded into the database on first boot and survive redeploys. Change passwords after deploy via **Admin → Users → Reset Password**.
 
 ---
 
@@ -82,8 +95,8 @@ All configuration is via environment variables. Defaults work out of the box.
 | `ENABLE_SSL` | `false` | Serve HTTPS directly. Set `false` when behind a reverse proxy like Traefik/Dokploy. |
 | `FLASK_DEBUG` | `0` | Enable Flask debug mode (do not use in production) |
 | `SECRET_KEY` | hardcoded fallback | Flask session signing key — **override in production** |
-| `ADMIN_USERNAME` | `admin@cpdemo.ca` | Admin portal login (see [credentials](#default-credentials)) |
-| `ADMIN_PASSWORD` | `Cpwins!1@2026` | Admin portal password |
+| `ADMIN_USERNAME` | `admin@cpdemo.ca` | Admin portal username |
+| `ADMIN_PASSWORD` | _auto-generated on first boot, persisted to `/app/data/.admin-password`_ | Set explicitly to lock in your own value. See [Credentials](#credentials). |
 | `IDP_ENTITY_ID` | `https://idp.cpdemo.ca` | SAML `entityID` advertised in metadata |
 | `SSO_SERVICE_URL` | `https://idp.cpdemo.ca/sso` | SAML SSO endpoint URL in metadata |
 | `CERT_PATH` | `app/certs/idp-cert.pem` | Path to the SAML signing cert (generated on first boot if missing) |

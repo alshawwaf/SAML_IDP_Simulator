@@ -15,25 +15,23 @@ An Identity Provider emulator for Check Point demos and PoCs. Speaks SAML 2.0 (S
 
 ### Admin portal — `/admin/login`
 
-The admin password is **auto-generated on first boot** and persisted across redeploys. Three ways to read it after deploying:
+| | |
+|---|---|
+| **URL** | `https://<your-host>/admin/login` |
+| **Username** | `admin@cpdemo.ca` |
+| **Password (default)** | `CpDemo2026` |
 
-1. **Startup log** — printed in a clearly-marked block:
-   ```
-   ======================================================================
-   ADMIN portal credentials (auto-generated on first boot)
-     Username: admin@cpdemo.ca
-     Password: <strong random password>
-     Saved to: /app/data/.admin-password
-     Lock-in:  set ADMIN_PASSWORD in Dokploy Environment tab
-   ======================================================================
-   ```
-2. **File on the persisted volume** (in Dokploy → Docker → container Terminal):
-   ```bash
-   cat /app/data/.admin-password
-   ```
-3. **Lock in your own** by setting `ADMIN_PASSWORD` in the Dokploy Environment tab and redeploying. If set, that value is used and the auto-generated one is ignored.
+**Change the password after first login** — open **Settings → Change Admin Password** in the admin UI. The new password is stored as a PBKDF2-SHA256 hash at `/app/data/.admin-password-hash` (on the `saml_idp_data` volume) and survives redeploys.
 
-The username defaults to `admin@cpdemo.ca`. Override via the `ADMIN_USERNAME` env var.
+Three precedence levels at login time:
+
+1. If `/app/data/.admin-password-hash` exists (someone changed it via the UI), that hash is checked first
+2. Otherwise, the `ADMIN_PASSWORD` env var if set in Dokploy
+3. Otherwise, the default `CpDemo2026`
+
+To revert to step 2/3, click **Settings → Reset to env/default** (or delete the hash file from the container terminal).
+
+Username is `ADMIN_USERNAME` env var, default `admin@cpdemo.ca`.
 
 ### Demo SAML users — used at the `/login` form when an SP triggers SSO
 
@@ -96,7 +94,7 @@ All configuration is via environment variables. Defaults work out of the box.
 | `FLASK_DEBUG` | `0` | Enable Flask debug mode (do not use in production) |
 | `SECRET_KEY` | hardcoded fallback | Flask session signing key — **override in production** |
 | `ADMIN_USERNAME` | `admin@cpdemo.ca` | Admin portal username |
-| `ADMIN_PASSWORD` | _auto-generated on first boot, persisted to `/app/data/.admin-password`_ | Set explicitly to lock in your own value. See [Credentials](#credentials). |
+| `ADMIN_PASSWORD` | `CpDemo2026` | Default works out-of-the-box. Change in **Admin → Settings → Change Admin Password** after first login, or set this env var to lock a specific value. |
 | `IDP_ENTITY_ID` | `https://idp.cpdemo.ca` | SAML `entityID` advertised in metadata |
 | `SSO_SERVICE_URL` | `https://idp.cpdemo.ca/sso` | SAML SSO endpoint URL in metadata |
 | `CERT_PATH` | `app/certs/idp-cert.pem` | Path to the SAML signing cert (generated on first boot if missing) |

@@ -1,11 +1,91 @@
-<form method="POST" action="/admin/update_settings">
-  <div class="mb-3">
-    <label class="form-label">Entity ID</label>
-    <input type="text" name="entity_id" value="{{ entity_id }}" class="form-control">
+{% extends "base.html" %}
+{% block title %}Admin Settings{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-gradient mb-0">
+      <i class="bi bi-gear-wide-connected me-2"></i>Settings
+    </h2>
   </div>
-  <div class="mb-3">
-    <label class="form-label">SSO URL</label>
-    <input type="text" name="sso_url" value="{{ sso_url }}" class="form-control">
+
+  <!-- Admin Password -->
+  <div class="card glass border-0 mb-4">
+    <div class="card-body">
+      <h5 class="text-white mb-3"><i class="bi bi-shield-lock me-2"></i>Admin Portal Password</h5>
+
+      <p class="small text-muted mb-3">
+        Current status:
+        {% if admin_password_overridden %}
+          <span class="badge bg-success ms-1">Custom password set</span>
+          — overrides the env/default value. Stored as a PBKDF2-SHA256 hash on the persisted volume
+          (<code>{{ admin_password_hash_file }}</code>).
+        {% else %}
+          <span class="badge bg-warning text-dark ms-1">Using env/default</span>
+          — value comes from the <code>ADMIN_PASSWORD</code> env var, or the documented default
+          (<code>CpDemo2026</code>) if the env var is unset. Anyone with access to your deploy can guess this — change it below.
+        {% endif %}
+      </p>
+
+      <form method="POST" action="{{ url_for('admin.change_admin_password') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small text-muted">Current Password</label>
+            <input type="password" name="current_password"
+                   class="form-control bg-dark text-white border-secondary"
+                   autocomplete="current-password" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">New Password (min 8 chars)</label>
+            <input type="password" name="new_password" minlength="8"
+                   class="form-control bg-dark text-white border-secondary"
+                   autocomplete="new-password" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">Confirm New Password</label>
+            <input type="password" name="confirm_password" minlength="8"
+                   class="form-control bg-dark text-white border-secondary"
+                   autocomplete="new-password" required>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-key-fill me-1"></i>Change Password
+          </button>
+
+          {% if admin_password_overridden %}
+          <button type="submit" name="action" value="reset"
+                  class="btn btn-outline-warning btn-sm"
+                  formnovalidate
+                  onclick="return confirm('Remove the custom password and revert to the env/default value?');">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to env/default
+          </button>
+          {% endif %}
+        </div>
+      </form>
+    </div>
   </div>
-  <button type="submit" class="btn btn-success">Save Settings</button>
-</form>
+
+  <!-- Read-only IDP info -->
+  <div class="card glass border-0">
+    <div class="card-body">
+      <h5 class="text-white mb-3"><i class="bi bi-info-circle me-2"></i>IdP Configuration</h5>
+      <p class="small text-muted">These values are controlled by env vars at deploy time.</p>
+      <dl class="row small mb-0">
+        <dt class="col-sm-3 text-muted">Admin Username</dt>
+        <dd class="col-sm-9"><code>{{ config.ADMIN_USERNAME }}</code></dd>
+
+        <dt class="col-sm-3 text-muted">Entity ID</dt>
+        <dd class="col-sm-9"><code>{{ config.IDP_ENTITY_ID }}</code></dd>
+
+        <dt class="col-sm-3 text-muted">SSO Service URL</dt>
+        <dd class="col-sm-9"><code>{{ config.SSO_SERVICE_URL }}</code></dd>
+
+        <dt class="col-sm-3 text-muted">SCIM enabled</dt>
+        <dd class="col-sm-9">{{ 'Yes' if config.ENABLE_SCIM else 'No' }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

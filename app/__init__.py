@@ -152,26 +152,14 @@ def seed_default_data():
 
 
 def _log_admin_credentials():
-    """Surface the admin login at startup so operators don't have to guess.
-
-    Auto-generated passwords are printed in full (they're already visible
-    via /app/data/.admin-password, and operators need them somewhere to
-    actually log in). Explicit ADMIN_PASSWORD values are NOT echoed — the
-    operator set them and presumably knows what they are.
-    """
-    if config_manager.ADMIN_PASSWORD_AUTO_GENERATED:
-        logger.info("=" * 70)
-        logger.info("ADMIN portal credentials (auto-generated on first boot)")
-        logger.info("  Username: %s", config_manager.ADMIN_USERNAME)
-        logger.info("  Password: %s", config_manager.ADMIN_PASSWORD)
-        logger.info("  Saved to: %s", config_manager.ADMIN_PASSWORD_FILE)
-        logger.info("  Lock-in:  set ADMIN_PASSWORD in Dokploy Environment tab")
-        logger.info("=" * 70)
+    """One-line startup hint about which admin password is active."""
+    if config_manager.ADMIN_PASSWORD_HASH_FILE.exists():
+        source = "custom (set via Settings → Change Admin Password)"
+    elif config_manager.ADMIN_PASSWORD_IS_DEFAULT:
+        source = "default 'CpDemo2026' — change it in Settings after first login"
     else:
-        logger.info(
-            "ADMIN portal: username=%s (password from ADMIN_PASSWORD env var)",
-            config_manager.ADMIN_USERNAME,
-        )
+        source = "from ADMIN_PASSWORD env var"
+    logger.info("ADMIN portal: username=%s, password=%s", config_manager.ADMIN_USERNAME, source)
 
 
 def create_app():

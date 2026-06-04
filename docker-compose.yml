@@ -19,11 +19,12 @@ services:
       - KEY_PATH=/app/app/certs/idp-key.pem
       - SECRET_KEY=Super-very-secret-key-cpdemo-2026
       - ADMIN_USERNAME=admin@cpdemo.ca
-      # ADMIN_PASSWORD intentionally NOT set here. On first boot the app
-      # generates a strong random password, persists it to
-      # /app/data/.admin-password (on the saml_idp_data volume), and prints
-      # it in the startup log. To lock in your own value, add ADMIN_PASSWORD
-      # to the Dokploy Environment tab.
+      # ADMIN_PASSWORD intentionally NOT set here so the app uses its baked-in
+      # default 'CpDemo2026' on first boot. The admin should change it from
+      # Settings → Change Admin Password after first login (persisted to
+      # /app/data/.admin-password-hash on the saml_idp_data volume). To lock
+      # in a specific value at deploy time instead, add ADMIN_PASSWORD to the
+      # Dokploy Environment tab.
       - IDP_ENTITY_ID=https://idp.cpdemo.ca
       - SSO_SERVICE_URL=https://idp.cpdemo.ca/sso
     volumes:

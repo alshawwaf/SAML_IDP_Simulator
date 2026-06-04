@@ -27,7 +27,13 @@ def dashboard():
 @admin_bp.route('/settings')
 @admin_required
 def settings():
-    return render_template('admin/settings.html', config=config_manager.get_all_config())
+    from app.utils.admin_password import admin_password_overridden
+    return render_template(
+        'admin/settings.html',
+        config=config_manager.get_all_config(),
+        admin_password_overridden=admin_password_overridden(),
+        admin_password_hash_file=str(config_manager.ADMIN_PASSWORD_HASH_FILE),
+    )
 
 @admin_bp.route('/idp-config')
 @admin_required
@@ -290,10 +296,11 @@ def get_sp_xml(sp_id):
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    from app.utils.admin_password import verify_admin_password
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if username == config_manager.ADMIN_USERNAME and password == config_manager.ADMIN_PASSWORD:
+        username = request.form.get('username') or ''
+        password = request.form.get('password') or ''
+        if username == config_manager.ADMIN_USERNAME and verify_admin_password(password):
             session['admin_logged_in'] = True
             return redirect(url_for('admin.dashboard'))
         flash('Invalid credentials', 'error')
@@ -304,4 +311,37 @@ def logout():
     session.pop('admin_logged_in', None)
     flash('Logged out successfully', 'success')
     return redirect(url_for('admin.login'))
+
+
+@admin_bp.route('/change-admin-password', methods=['POST'])
+@admin_required
+def change_admin_password():
+    """Persist a new admin portal password (overrides the env/default)."""
+    from app.utils.admin_password import (
+        set_admin_password, verify_admin_password, reset_to_default,
+    )
+    action = request.form.get('action', 'change')
+
+    if action == 'reset':
+        reset_to_default()
+        flash('Admin password reverted to env/default.', 'success')
+        return redirect(url_for('admin.settings'))
+
+    current = request.form.get('current_password') or ''
+    new_pw = request.form.get('new_password') or ''
+    confirm = request.form.get('confirm_password') or ''
+
+    if not verify_admin_password(current):
+        flash('Current password is incorrect.', 'error')
+        return redirect(url_for('admin.settings'))
+    if not new_pw or len(new_pw) < 8:
+        flash('New password must be at least 8 characters.', 'error')
+        return redirect(url_for('admin.settings'))
+    if new_pw != confirm:
+        flash('New password and confirmation do not match.', 'error')
+        return redirect(url_for('admin.settings'))
+
+    set_admin_password(new_pw)
+    flash('Admin password changed. Use the new password on next login.', 'success')
+    return redirect(url_for('admin.settings'))
 

@@ -14,96 +14,46 @@
 
     <div class="alert alert-info border-0 glass mb-4">
       <small><i class="bi bi-info-circle me-2"></i>
-        These values are <strong>read-only</strong>. The Entity ID and SSO Service URL are
-        auto-derived from this deployment's public URL (override with the
-        <code>IDP_ENTITY_ID</code> / <code>SSO_SERVICE_URL</code> env vars). Certificate paths
-        and server settings are fixed at deploy time. Use the buttons below to hand this IdP's
-        metadata to a Service Provider.
+        These are the values to hand to a Service Provider (Check Point SASE, Quantum,
+        SmartConsole, etc.). They're auto-derived from this deployment's public URL — set the
+        <code>IDP_ENTITY_ID</code> / <code>SSO_SERVICE_URL</code> env vars only if you need to
+        pin specific values.
       </small>
     </div>
 
-    <!-- Identity Provider Settings -->
     <div class="card glass border-0 mb-4">
-        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
-            <h5 class="mb-0 text-white">
-                <i class="bi bi-shield-check me-2 text-primary"></i>Identity Provider
-            </h5>
-        </div>
         <div class="card-body">
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <label class="form-label small text-muted">Entity ID</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary"
-                           value="{{ config.IDP_ENTITY_ID }}" readonly>
-                    <small class="text-muted">Unique identifier for this IdP</small>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label small text-muted">SSO Service URL</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary"
-                           value="{{ config.SSO_SERVICE_URL }}" readonly>
-                    <small class="text-muted">Where SPs send users to sign in</small>
-                </div>
-            </div>
-        </div>
-    </div>
+            <h5 class="text-white mb-1"><i class="bi bi-shield-check me-2 text-primary"></i>Identity Provider</h5>
+            <p class="small text-muted mb-4">Copy these into your SP, or upload the metadata below.</p>
 
-    <!-- Certificate Information -->
-    <div class="card glass border-0 mb-4">
-        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
-            <h5 class="mb-0 text-white">
-                <i class="bi bi-file-earmark-lock me-2 text-success"></i>Signing Certificate
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <label class="form-label small text-muted">Certificate Path</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary"
-                           value="{{ config.CERT_PATH }}" readonly>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label small text-muted">Private Key Path</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary"
-                           value="{{ config.KEY_PATH }}" readonly>
-                </div>
+            <!-- Entity ID -->
+            <label class="form-label small text-muted mb-1">Entity ID</label>
+            <div class="d-flex align-items-stretch gap-2 mb-1">
+                <code id="val-entity" class="flex-grow-1 d-flex align-items-center px-3 py-2"
+                      style="word-break: break-all;">{{ config.IDP_ENTITY_ID }}</code>
+                <button type="button" class="btn btn-outline-light btn-sm copy-btn" data-copy="val-entity">
+                    <i class="bi bi-clipboard"></i>
+                </button>
             </div>
-            <div class="mt-3">
-                <a href="{{ url_for('metadata.download_metadata') }}" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-key me-1"></i>Download Certificate (in metadata)
-                </a>
-            </div>
-        </div>
-    </div>
+            <p class="small text-muted mb-4">Unique identifier for this IdP.</p>
 
-    <!-- Server Settings -->
-    <div class="card glass border-0 mb-4">
-        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-25">
-            <h5 class="mb-0 text-white">
-                <i class="bi bi-hdd-network me-2 text-info"></i>Server &amp; Provisioning
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-4">
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Host</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary"
-                           value="{{ config.HOST }}" readonly>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Port</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary"
-                           value="{{ config.PORT }}" readonly>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Debug Mode</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary"
-                           value="{{ 'Enabled' if config.DEBUG else 'Disabled' }}" readonly>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">SCIM Provisioning</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary"
-                           value="{{ 'Enabled' if config.ENABLE_SCIM else 'Disabled' }}" readonly>
-                </div>
+            <!-- SSO Service URL -->
+            <label class="form-label small text-muted mb-1">SSO Service URL</label>
+            <div class="d-flex align-items-stretch gap-2 mb-1">
+                <code id="val-sso" class="flex-grow-1 d-flex align-items-center px-3 py-2"
+                      style="word-break: break-all;">{{ config.SSO_SERVICE_URL }}</code>
+                <button type="button" class="btn btn-outline-light btn-sm copy-btn" data-copy="val-sso">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+            </div>
+            <p class="small text-muted mb-4">Where Service Providers send users to sign in.</p>
+
+            <!-- SCIM status -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="small text-muted">SCIM Provisioning:</span>
+                <span class="badge bg-{{ 'success' if config.ENABLE_SCIM else 'secondary' }}">
+                    {{ 'Enabled' if config.ENABLE_SCIM else 'Disabled' }}
+                </span>
             </div>
         </div>
     </div>
@@ -193,6 +143,25 @@ document.getElementById('copyIdpMetadataBtn').addEventListener('click', function
             }, 2000);
         })
         .catch(err => console.error('Copy failed:', err));
+});
+
+// Copy buttons for the Entity ID / SSO URL values
+document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const target = document.getElementById(this.dataset.copy);
+        if (!target) return;
+        navigator.clipboard.writeText(target.textContent.trim()).then(() => {
+            const original = this.innerHTML;
+            this.innerHTML = '<i class="bi bi-clipboard-check"></i>';
+            this.classList.add('btn-success');
+            this.classList.remove('btn-outline-light');
+            setTimeout(() => {
+                this.innerHTML = original;
+                this.classList.remove('btn-success');
+                this.classList.add('btn-outline-light');
+            }, 1500);
+        }).catch(err => console.error('Copy failed:', err));
+    });
 });
 </script>
 {% endblock %}

@@ -16,9 +16,9 @@ def get_metadata_xml():
     
     template = Template(template_str)
     return template.render(
-        entity_id=config_manager.IDP_ENTITY_ID,
+        entity_id=config_manager.effective_entity_id(),
         cert_content=cert_data,
-        sso_service_url=config_manager.SSO_SERVICE_URL
+        sso_service_url=config_manager.effective_sso_url()
     )
 
 @metadata_bp.route('/metadata')

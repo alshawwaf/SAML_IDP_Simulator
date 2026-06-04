@@ -27,8 +27,21 @@ class ConfigManager:
 
         # Security & Identity
         self.SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production-" + os.urandom(8).hex())
-        self.IDP_ENTITY_ID = os.getenv("IDP_ENTITY_ID", "https://idp.simulator")
-        self.SSO_SERVICE_URL = os.getenv("SSO_SERVICE_URL", f"http://{self.HOST}:{self.PORT}/sso")
+
+        # Entity ID and SSO URL.
+        # If the operator sets these env vars explicitly, we honor them verbatim.
+        # If NOT set, we derive them from the real request host at use time (see
+        # effective_entity_id / effective_sso_url) so a fresh deploy advertises
+        # correct, reachable URLs (e.g. https://idp.example.com/sso) instead of
+        # the internal container address. The attributes below are the static
+        # fallbacks used only when there is no request context (e.g. CLI).
+        _entity = os.getenv("IDP_ENTITY_ID")
+        self.IDP_ENTITY_ID_EXPLICIT = bool(_entity)
+        self.IDP_ENTITY_ID = _entity or "https://idp.simulator"
+
+        _sso = os.getenv("SSO_SERVICE_URL")
+        self.SSO_SERVICE_URL_EXPLICIT = bool(_sso)
+        self.SSO_SERVICE_URL = _sso or f"http://{self.HOST}:{self.PORT}/sso"
 
         # Admin Credentials.
         # Resolution: ADMIN_USERNAME env var → fallback "admin@cpdemo.ca".
@@ -78,9 +91,41 @@ class ConfigManager:
             self.SCIM_ENCRYPTION_KEY = base64.urlsafe_b64encode(derived).decode("ascii")
             self.SCIM_ENCRYPTION_KEY_DERIVED = True
 
+    def effective_entity_id(self):
+        """The Entity ID to advertise. Explicit env var wins; otherwise derive
+        from the live request host so it matches the real deployment URL."""
+        if self.IDP_ENTITY_ID_EXPLICIT:
+            return self.IDP_ENTITY_ID
+        try:
+            from flask import has_request_context, request
+            if has_request_context():
+                return request.url_root.rstrip("/")
+        except Exception:
+            pass
+        return self.IDP_ENTITY_ID
+
+    def effective_sso_url(self):
+        """The SSO endpoint URL to advertise. Explicit env var wins; otherwise
+        derive from the live request host (…/sso) so SPs get a reachable URL."""
+        if self.SSO_SERVICE_URL_EXPLICIT:
+            return self.SSO_SERVICE_URL
+        try:
+            from flask import has_request_context, request
+            if has_request_context():
+                return request.url_root.rstrip("/") + "/sso"
+        except Exception:
+            pass
+        return self.SSO_SERVICE_URL
+
     def get_all_config(self):
-        """Returns all configuration as a dictionary for template rendering"""
-        return {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        """Returns all configuration as a dictionary for template rendering.
+
+        Overlays the effective (request-derived) Entity ID / SSO URL so admin
+        pages display the same values that get baked into metadata."""
+        data = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        data["IDP_ENTITY_ID"] = self.effective_entity_id()
+        data["SSO_SERVICE_URL"] = self.effective_sso_url()
+        return data
 
 # Exported singleton instance
 config_manager = ConfigManager()

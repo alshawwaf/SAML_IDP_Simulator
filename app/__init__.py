@@ -166,6 +166,14 @@ def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = config_manager.SECRET_KEY
 
+    # Behind Dokploy/Traefik (or any reverse proxy) the app sees the internal
+    # http://0.0.0.0:5000 host. Honor X-Forwarded-Proto/Host/Port so
+    # request.url_root reflects the real external URL (https://idp.example.com).
+    # This is what lets the metadata/SSO URLs auto-derive correctly without
+    # any env vars. Safe no-op when there's no proxy.
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+
     # Migrate any pre-volume DB into the persisted volume BEFORE SQLAlchemy
     # opens the file, then point at the new location.
     _migrate_legacy_db()

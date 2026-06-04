@@ -22,7 +22,7 @@ class IdPHandler:
         # Simplified Assertion generation logic
         assertion = f"""
         <saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_assertion123" IssueInstant="{now.isoformat()}Z" Version="2.0">
-            <saml:Issuer>{config_manager.IDP_ENTITY_ID}</saml:Issuer>
+            <saml:Issuer>{config_manager.effective_entity_id()}</saml:Issuer>
             <saml:Subject>
                 <saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">{user_info['email']}</saml:NameID>
             </saml:Subject>

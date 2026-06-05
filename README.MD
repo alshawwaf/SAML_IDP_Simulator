@@ -121,6 +121,70 @@ All configuration is via environment variables. Defaults work out of the box.
 2. **In the Check Point product** (SmartConsole, Harmony Connect, Check Point SASE, etc.): create an Identity Provider object. Set ACS URL and Entity ID to match. Upload the simulator's metadata from `/download-metadata` or paste the cert from `/download-cert`.
 3. **Trigger SSO** from the SP. The browser is redirected to `/sso?SAMLRequest=...`, the user logs in with one of the demo credentials, and the simulator returns a signed `Response` POSTed to the SP's ACS URL.
 
+### Check Point Service Provider examples
+
+These four Check Point integrations have been validated end-to-end, and **all four ship pre-seeded as templates** with placeholder Entity ID / ACS URLs. On a fresh deploy, open **Admin → Service Providers**, click the pencil on each, and replace the placeholders with your environment's values — the attribute mappings below come pre-filled.
+
+In each Check Point product you copy out its **Entity ID** and **ACS / Reply URL** to paste here, and you upload this IdP's metadata (`/download-metadata`) or certificate (`/download-cert`) on the Check Point side. The IdP signs both the Assertion and the Response, so all four accept it.
+
+#### 1. SmartConsole — administrator login SAML (R81.20+)
+
+| Field | Value |
+|---|---|
+| **Entity ID** | `https://<your-mgmt-host>/cpmws/saml/acs/id/<sp-id>` |
+| **ACS URL** | `https://<your-mgmt-host>/cpmws/saml/acs/sso` |
+
+| Claim name | User field |
+|---|---|
+| `username` | `username` |
+| `groups` | `groups` |
+
+> SmartConsole validates the **signed `<Response>`** (not just the assertion) — the IdP does this automatically. Create the matching Administrator in SmartConsole with the SAML identity provider as its authentication method.
+
+#### 2. Infinity Portal — Generic SAML Server
+
+| Field | Value |
+|---|---|
+| **Entity ID** | `<your-tenant-id>.cloudinfra.checkpoint.com` |
+| **ACS / Reply URL** | `https://cloudinfra-gw-<region>.portal.checkpoint.com/api/saml/sso` (region: `us` / `eu` / `au` / `in`) |
+
+| Claim name | User field |
+|---|---|
+| `identity/claims/givenname` | `first_name` |
+| `identity/claims/name` | `last_name` |
+| `identity/claims/emailaddress` | `email` |
+| `groups` | `groups` |
+| `urn:mace:dir:attribute-def:userId` | `user_id` |
+
+> All five claims are **mandatory and must be non-empty**. Map the `userId` claim to **`user_id`** (the stable per-user UUID) — not `external_id`, which is empty unless the user was SCIM-provisioned. The IdP omits empty attributes, which fails the portal's "User ID" check.
+
+#### 3. Identity Awareness — Captive Portal SAML
+
+| Field | Value |
+|---|---|
+| **Entity ID** | `https://<your-gateway>/connect/spPortal/ACS/ID/<sp-id>` |
+| **ACS URL** | `https://<your-gateway>/connect/spPortal/ACS/Login/<sp-id>` |
+
+| Claim name | User field |
+|---|---|
+| `username` | `email` |
+
+> The same `<sp-id>` appears in both the Entity ID and the ACS path. NameID is the user's email.
+
+#### 4. Remote Access VPN — SAML
+
+| Field | Value |
+|---|---|
+| **Entity ID** | `https://<your-gateway>/saml-vpn/spPortal/ACS/ID/<sp-id>` |
+| **ACS URL** | `https://<your-gateway>/saml-vpn/spPortal/ACS/Login/<sp-id>` |
+
+| Claim name | User field |
+|---|---|
+| `username` | `email` |
+| `group attr` | `groups` |
+
+> Same shape as Identity Awareness but under the gateway's `/saml-vpn/` portal. The `group attr` claim name contains a space — enter it exactly.
+
 ### SAML SSO flow
 
 ```mermaid

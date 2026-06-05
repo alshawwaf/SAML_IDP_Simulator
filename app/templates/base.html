@@ -68,23 +68,16 @@
 <main class="container py-4">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="row justify-content-center">
-        <div class="col-md-5">
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show animate-fade-in p-2 px-3 mb-3 border-0 glass shadow-glow">
-              <div class="d-flex align-items-center gap-2">
-                  <div class="bg-{{ category if category != 'error' else 'danger' }} bg-opacity-20 p-1 rounded-circle d-flex">
-                      <i class="bi bi-{{ 'check-circle-fill' if category == 'success' else 'exclamation-circle-fill' }} small"></i>
-                  </div>
-                  <div class="flex-grow-1 small">
-                      <span class="fw-bold text-uppercase opacity-50 me-1">{{ category if category != 'error' else 'Note' }}:</span>
-                      <span class="text-white">{{ message }}</span>
-                  </div>
-              </div>
-              <button type="button" class="btn-close small p-2" data-bs-dismiss="alert" aria-label="Close" style="font-size: 0.6rem;"></button>
-            </div>
-          {% endfor %}
-        </div>
+      <div class="toast-stack" id="toastStack">
+        {% for category, message in messages %}
+          {% set cat = 'danger' if category == 'error' else category %}
+          {% set icon = {'success': 'check-circle-fill', 'danger': 'exclamation-octagon-fill', 'warning': 'exclamation-triangle-fill', 'info': 'info-circle-fill'}.get(cat, 'info-circle-fill') %}
+          <div class="app-toast app-toast-{{ cat }} animate-toast-in" role="alert">
+            <i class="bi bi-{{ icon }} app-toast-icon"></i>
+            <div class="app-toast-body"><strong>{{ 'error' if cat == 'danger' else cat }}</strong>{{ message }}</div>
+            <button type="button" class="app-toast-close" aria-label="Close">&times;</button>
+          </div>
+        {% endfor %}
       </div>
     {% endif %}
   {% endwith %}
@@ -112,6 +105,20 @@
     var m = e.target;
     if (m && m.classList && m.classList.contains('modal') && m.parentNode !== document.body) {
       document.body.appendChild(m);
+    }
+  });
+
+  // Flash toasts: click-to-close, and auto-dismiss everything except errors
+  // (errors stay until the user dismisses them so they aren't missed).
+  document.querySelectorAll('#toastStack .app-toast').forEach(function (t, i) {
+    var close = function () {
+      t.classList.add('hiding');
+      setTimeout(function () { t.remove(); }, 250);
+    };
+    var btn = t.querySelector('.app-toast-close');
+    if (btn) btn.addEventListener('click', close);
+    if (!t.classList.contains('app-toast-danger')) {
+      setTimeout(close, 5000 + i * 400);
     }
   });
 </script>

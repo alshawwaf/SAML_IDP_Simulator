@@ -32,10 +32,10 @@
                         {% for sp in sps %}
                         <tr>
                             <td class="px-3 py-3">
+                                {% set n = (sp.name or '')|lower %}
+                                {% set sp_icon = 'bi-pc-display-horizontal' if 'smartconsole' in n else 'bi-shield-lock' if 'vpn' in n else 'bi-person-badge' if ('identity' in n or 'awareness' in n or 'captive' in n or 'ida' in n) else 'bi-infinity' if 'infinity' in n else 'bi-cloud' if 'portal' in n else 'bi-box-seam' %}
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-primary bg-opacity-20 p-2 me-2 flex-shrink-0">
-                                        <i class="bi bi-building text-primary"></i>
-                                    </div>
+                                    <span class="sp-avatar me-2 flex-shrink-0"><i class="bi {{ sp_icon }}"></i></span>
                                     <span class="fw-medium text-white">{{ sp.name or 'Unnamed' }}</span>
                                 </div>
                             </td>
@@ -51,7 +51,8 @@
                                     <span class="badge bg-secondary me-1 mb-1">{{ attr.claim }}</span>
                                     {% endfor %}
                                     {% if sp.attr_map|length > 3 %}
-                                    <span class="badge bg-dark mb-1">+{{ sp.attr_map|length - 3 }} more</span>
+                                    <span class="badge bg-dark mb-1 sp-more" data-bs-toggle="tooltip" data-bs-placement="top"
+                                          title="{{ sp.attr_map[3:] | map(attribute='claim') | join(', ') }}">+{{ sp.attr_map|length - 3 }} more</span>
                                     {% endif %}
                                 {% else %}
                                 <span class="text-muted">No mappings</span>
@@ -164,6 +165,11 @@ function highlightXML(xml) {
 let rawSpXml = "";
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Tooltips (e.g. the "+N more" badge reveals the remaining claim names on hover)
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        new bootstrap.Tooltip(el);
+    });
+
     // Handle View XML button click
     document.querySelectorAll('.view-xml-btn').forEach(button => {
         button.addEventListener('click', async function() {

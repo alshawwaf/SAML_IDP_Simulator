@@ -84,10 +84,11 @@ def seed_default_data():
         },
     ]
     
-    # Default Service Provider templates for the two validated Check Point
+    # Default Service Provider templates for the three validated Check Point
     # integrations. Entity ID / ACS URL are PLACEHOLDERS — replace them per
     # deployment under Admin → Service Providers. The claim mappings are the
-    # ones confirmed working against real SmartConsole + Infinity Portal.
+    # ones confirmed working against real SmartConsole, Infinity Portal, and
+    # Identity Awareness (Captive Portal SAML).
     default_sps = [
         {
             # Check Point SmartConsole admin SAML (R81.20+). The IdP signs the
@@ -113,6 +114,18 @@ def seed_default_data():
                 {"claim": "identity/claims/emailaddress", "value": "email"},
                 {"claim": "groups", "value": "groups"},
                 {"claim": "urn:mace:dir:attribute-def:userId", "value": "user_id"},
+            ],
+        },
+        {
+            # Check Point Identity Awareness — Captive Portal SAML login. The
+            # gateway's SP ID appears in both the Entity ID and the ACS path.
+            # NameID carries the email; a single "username" claim (= email) is
+            # all the captive portal needs.
+            "name": "IDA-CaptivePortalSAML",
+            "entity_id": "https://gateway.example.com/connect/spPortal/ACS/ID/REPLACE-WITH-YOUR-SP-ID",
+            "acs_url": "https://gateway.example.com/connect/spPortal/ACS/Login/REPLACE-WITH-YOUR-SP-ID",
+            "attr_map": [
+                {"claim": "username", "value": "email"},
             ],
         },
     ]

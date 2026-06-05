@@ -300,13 +300,15 @@ It's also shown in a banner on `/admin/scim/`. Hand it to the upstream IdP and p
 
 ### Outbound: push to Check Point SASE
 
-Full walkthrough (including the workaround for SASE's Entra-ID-only SCIM connector) is in [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md). Short version:
+The simulator pushes users into a Check Point SASE (Harmony SASE / Perimeter 81) tenant as a SCIM client. The full screenshot walkthrough is in [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md); the essentials:
 
-1. **In Check Point SASE** — *Settings → Identity Providers → Add Microsoft Entra ID* (dummy credentials), enable **SCIM Integration**, generate a token, and copy the Tenant URL + token.
-2. **In the simulator** — *Admin → SCIM → Outbound Targets → Add Target*, pick the region preset (US / EU / AU / IN), paste the token, save.
-3. Click **Test**, then **Sync All** to push the demo users.
+> **The Entra ID workaround (the key trick).** Check Point SASE only exposes SCIM provisioning through its **Microsoft Entra ID** and **Okta** connectors — there is no "generic SCIM" option. So to get a SCIM endpoint + token, add a **Microsoft Entra ID** identity provider with **dummy credentials** (any domain, a UUID-shaped Client ID like `00000000-0000-0000-0000-000000000001`, any 20+ character secret) and tick **SCIM Integration**. Check Point does **not** validate the Entra credentials before issuing the SCIM token, so the simulator can then push as if it were Entra ID — no real Entra tenant required.
 
-Every outbound request is recorded in **Admin → SCIM → Push Log** with full request/response bodies — handy for narrating a live demo.
+1. **In Check Point SASE** — *Settings → Identity Providers → + Add Provider → Microsoft Entra ID +SCIM*. Fill the form with the dummy values above, tick **SCIM Integration**, click **Done**. Then open **SCIM Integration → Settings → Generate Token** and copy the **Tenant URL** and the **bearer token** (shown once).
+2. **In the simulator** — *Admin → SCIM → Outbound Targets → Add Target*. Click the matching **region preset** (US / EU / AU / IN) to fill the Base URL, paste the token, **Create Target**.
+3. Click **Test** (expect HTTP 200), then **Sync All** to push the demo users.
+
+Synced users appear in Check Point SASE under **Team → Members** with Identity Provider = Entra ID. Every outbound request is recorded in **Admin → SCIM → Push Log** with full request/response bodies — gold for narrating a live demo.
 
 ## Endpoint reference
 

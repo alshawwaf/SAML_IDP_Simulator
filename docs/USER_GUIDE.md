@@ -210,7 +210,7 @@ Now wire the simulator to push to that endpoint.
 Log in to `https://idp.<yourdomain>/admin/`:
 
 - Username: `admin@cpdemo.ca` (default)
-- Password: `Cpwins!1@2026` (default — change in Dokploy env if desired)
+- Password: `CpDemo2026` (default — change via the account menu after login, or the `ADMIN_PASSWORD` env var)
 
 Click the **SCIM** dropdown in the nav → **Outbound Targets**.
 
@@ -369,7 +369,7 @@ Check Point SASE uses email-as-userName. The simulator already sends `userName =
 |---|---|
 | Admin URL | `https://idp.<yourdomain>/admin/login` |
 | Username | `admin@cpdemo.ca` |
-| Password | `Cpwins!1@2026` |
+| Password | `CpDemo2026` |
 
 Override via env vars `ADMIN_USERNAME` / `ADMIN_PASSWORD` in Dokploy.
 
@@ -381,11 +381,16 @@ Override via env vars `ADMIN_USERNAME` / `ADMIN_PASSWORD` in Dokploy.
 | `john.smith` | `john.smith@cpdemo.ca` | `Cpwins!1@2026` |
 | `jane.doe` | `jane.doe@cpdemo.ca` | `Cpwins!1@2026` |
 
-### Default seeded SAML SPs
+### Default seeded Service Providers
 
-- Harmony Connect Portal
-- Quantum Security Gateway
-- SmartConsole
+Five validated Check Point integrations (seeded with reference-lab example values — edit to your environment) plus a built-in self-test:
+
+- **Built-in SAML Test** — loopback SP; visit `/saml-test` to verify SSO end-to-end with no external product
+- **SmartConsole** — administrator login SAML
+- **InfinityPortal** — Generic SAML Server
+- **IDA-CaptivePortalSAML** — Identity Awareness captive portal
+- **RemoteAccessVPN** — gateway `saml-vpn` portal
+- **IdentityAndTrust** — Generic SAML Server
 
 Edit them at `/admin/service-providers/`.
 
@@ -405,9 +410,10 @@ Edit them at `/admin/service-providers/`.
 | `ENABLE_SCIM` | `false` | Master switch. Setting `true` exposes `/scim/v2` + admin pages. |
 | `SCIM_PUSH_ON_USER_CHANGE` | `false` | Auto-push admin user CRUD to enabled outbound targets. |
 | `SCIM_ENCRYPTION_KEY` | derived from `SECRET_KEY` | Override if you want SCIM tokens to survive a `SECRET_KEY` rotation. |
-| `ADMIN_USERNAME`, `ADMIN_PASSWORD` | `admin@cpdemo.ca`, `Cpwins!1@2026` | Admin login. |
-| `SECRET_KEY` | hardcoded default | Flask session signing key. **Override in production.** |
-| `IDP_ENTITY_ID`, `SSO_SERVICE_URL` | `https://idp.cpdemo.ca`, ... | SAML metadata values. Override with your actual domain. |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD` | `admin@cpdemo.ca`, `CpDemo2026` | Admin login. |
+| `SECRET_KEY` | auto-generated | Flask session signing key. Generated + persisted to the data volume if unset; never hardcode it. |
+| `IDP_ENTITY_ID`, `SSO_SERVICE_URL` | auto-derived | SAML metadata values. Default to the deployment's public URL; set only to pin specific values. |
+| `USE_GUNICORN` | `true` (Docker) | Serve via gunicorn; unset uses the Flask dev server (local). |
 
 ### Reference docs
 

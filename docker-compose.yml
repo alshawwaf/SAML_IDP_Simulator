@@ -17,7 +17,10 @@ services:
       - FLASK_DEBUG=0
       - CERT_PATH=/app/app/certs/idp-cert.pem
       - KEY_PATH=/app/app/certs/idp-key.pem
-      - SECRET_KEY=Super-very-secret-key-cpdemo-2026
+      # SECRET_KEY intentionally NOT set here. Set it in the Dokploy Environment
+      # tab to a unique random value (e.g. `openssl rand -base64 48`). If left
+      # unset, the app generates one on first boot and persists it to the data
+      # volume (/app/data/.secret-key) so it stays stable across redeploys.
       - ADMIN_USERNAME=admin@cpdemo.ca
       # ADMIN_PASSWORD intentionally NOT set here so the app uses its baked-in
       # default 'CpDemo2026' on first boot. The admin should change it from

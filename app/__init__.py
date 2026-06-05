@@ -9,6 +9,7 @@ from app.utils.models import db, User, ServiceProvider, ensure_schema
 from app.utils.config_manager import config_manager
 from app.utils.logger_main import logger
 from app.utils.path_config import BASE_DIR
+from app.utils.extensions import limiter
 
 csrf = CSRFProtect()
 
@@ -183,6 +184,7 @@ def create_app():
 
     db.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     # Make ENABLE_SCIM visible to every template — drives nav-link visibility.
     @app.context_processor
@@ -197,6 +199,11 @@ def create_app():
         app.register_blueprint(metadata_bp)
         app.register_blueprint(auth_bp)
         app.register_blueprint(admin_bp)
+
+        # SP-initiated SSO may arrive via the HTTP-POST binding (AuthnRequest in
+        # a form with no Flask CSRF token). Exempt just the /sso view; /login
+        # keeps CSRF protection (it's a browser form that includes the token).
+        csrf.exempt(app.view_functions['auth.sso'])
 
         # Import SCIM models before create_all() so their tables get created
         # in the same pass. The import is no-op-cheap when SCIM is off — it

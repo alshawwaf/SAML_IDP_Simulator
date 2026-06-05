@@ -91,14 +91,16 @@ All configuration is via environment variables. Defaults work out of the box.
 | `IDP_PORT` | `5000` (Docker) / `9001` (local) | Port Flask binds to |
 | `IDP_HOST` | `0.0.0.0` | Bind address |
 | `ENABLE_SSL` | `false` | Serve HTTPS directly. Set `false` when behind a reverse proxy like Traefik/Dokploy. |
-| `FLASK_DEBUG` | `0` | Enable Flask debug mode (do not use in production) |
-| `SECRET_KEY` | hardcoded fallback | Flask session signing key — **override in production** |
+| `FLASK_DEBUG` | `0` | Enable Flask debug mode. Off by default (debug mode exposes the Werkzeug console — never enable in production). |
+| `SECRET_KEY` | auto-generated | Flask session signing key (also derives the SCIM token-encryption key). If unset, a strong random key is generated and persisted to the data volume on first boot, stable across redeploys. Set explicitly to pin a value. **Never hardcode it in source/compose.** |
 | `ADMIN_USERNAME` | `admin@cpdemo.ca` | Admin portal username |
 | `ADMIN_PASSWORD` | `CpDemo2026` | Default works out-of-the-box. Change in **Admin → Settings → Change Admin Password** after first login, or set this env var to lock a specific value. |
 | `IDP_ENTITY_ID` | `https://idp.cpdemo.ca` | SAML `entityID` advertised in metadata |
 | `SSO_SERVICE_URL` | `https://idp.cpdemo.ca/sso` | SAML SSO endpoint URL in metadata |
 | `CERT_PATH` | `app/certs/idp-cert.pem` | Path to the SAML signing cert (generated on first boot if missing) |
 | `KEY_PATH` | `app/certs/idp-key.pem` | Path to the SAML private key |
+| `USE_GUNICORN` | `true` (Docker) | Serve via gunicorn. Set `false`/unset for the Flask dev server (local runs). |
+| `GUNICORN_WORKERS` | `2` | gunicorn worker count when `USE_GUNICORN=true`. |
 
 ### SCIM 2.0 (optional)
 
@@ -213,6 +215,10 @@ Every outbound request is logged to **Admin → SCIM → Push Log** with full re
 ## Architecture & security notes
 
 - SAML signing uses X.509 with `signxml`. Cert and key are auto-generated on first boot (`entrypoint.py`) and persisted to the `saml_idp_certs` Docker volume.
+- SP-initiated SSO emits a **signed** SAML assertion (RSA-SHA256, exclusive C14N, enveloped signature on the assertion). The incoming `AuthnRequest` is parsed with a hardened parser (no DTD / no external entities) to prevent XXE.
+- `SECRET_KEY` is generated and persisted to the data volume when not provided via env — it is never hardcoded.
+- Admin (`/admin/login`) and SSO (`/login`) login endpoints are rate-limited via Flask-Limiter.
+- `FLASK_DEBUG` is off by default; the container serves through gunicorn (`USE_GUNICORN=true`), not the Flask dev server.
 - SQLite database lives at `/app/data/app.db` in the persisted `saml_idp_data` volume. Survives Dokploy redeploys.
 - Inbound SCIM bearer tokens are stored as SHA-256 hashes (constant-time compared on auth).
 - Outbound SCIM bearer tokens (to Check Point SASE) are Fernet-encrypted at rest. The encryption key is derived deterministically from `SECRET_KEY` unless `SCIM_ENCRYPTION_KEY` is set explicitly.

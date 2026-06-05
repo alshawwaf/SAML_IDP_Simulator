@@ -84,11 +84,11 @@ def seed_default_data():
         },
     ]
     
-    # Default Service Provider templates for the three validated Check Point
+    # Default Service Provider templates for the four validated Check Point
     # integrations. Entity ID / ACS URL are PLACEHOLDERS — replace them per
     # deployment under Admin → Service Providers. The claim mappings are the
-    # ones confirmed working against real SmartConsole, Infinity Portal, and
-    # Identity Awareness (Captive Portal SAML).
+    # ones confirmed working against real SmartConsole, Infinity Portal,
+    # Identity Awareness (Captive Portal SAML), and Remote Access VPN.
     default_sps = [
         {
             # Check Point SmartConsole admin SAML (R81.20+). The IdP signs the
@@ -126,6 +126,19 @@ def seed_default_data():
             "acs_url": "https://gateway.example.com/connect/spPortal/ACS/Login/REPLACE-WITH-YOUR-SP-ID",
             "attr_map": [
                 {"claim": "username", "value": "email"},
+            ],
+        },
+        {
+            # Check Point Remote Access VPN — SAML auth via the gateway's
+            # saml-vpn portal. Same "SP ID in both paths" shape as IDA, but
+            # under /saml-vpn/. NameID=email; username->email plus a
+            # "group attr" claim -> groups.
+            "name": "RemoteAccessVPN",
+            "entity_id": "https://gateway.example.com/saml-vpn/spPortal/ACS/ID/REPLACE-WITH-YOUR-SP-ID",
+            "acs_url": "https://gateway.example.com/saml-vpn/spPortal/ACS/Login/REPLACE-WITH-YOUR-SP-ID",
+            "attr_map": [
+                {"claim": "username", "value": "email"},
+                {"claim": "group attr", "value": "groups"},
             ],
         },
     ]

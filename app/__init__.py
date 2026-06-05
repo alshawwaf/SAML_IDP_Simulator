@@ -214,6 +214,16 @@ def create_app():
     def inject_scim_flag():
         return {"scim_enabled": config_manager.ENABLE_SCIM}
 
+    # Admin identity + password state for the navbar account menu (rendered on
+    # every page; both lookups are cheap — an attribute read and a file check).
+    @app.context_processor
+    def inject_admin_account():
+        from app.utils.admin_password import admin_password_overridden
+        return {
+            "admin_username": config_manager.ADMIN_USERNAME,
+            "admin_password_overridden": admin_password_overridden(),
+        }
+
     with app.app_context():
         from app.routes.metadata import metadata_bp
         from app.routes.auth import auth_bp

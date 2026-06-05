@@ -758,3 +758,19 @@ code {
   transform: translateY(-10px);
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
+
+/* ===================== Navbar account menu ===================== */
+.account-avatar {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+.navbar .dropdown-menu form { margin: 0; }
+.navbar .dropdown-item { cursor: pointer; }

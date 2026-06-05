@@ -28,13 +28,9 @@ def dashboard():
 @admin_bp.route('/settings')
 @admin_required
 def settings():
-    from app.utils.admin_password import admin_password_overridden
-    return render_template(
-        'admin/settings.html',
-        config=config_manager.get_all_config(),
-        admin_password_overridden=admin_password_overridden(),
-        admin_password_hash_file=str(config_manager.ADMIN_PASSWORD_HASH_FILE),
-    )
+    # Settings moved into the navbar account menu (Change Password / Reset /
+    # Sign out) and the IDP Config page. Kept as a redirect so old links work.
+    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/idp-config')
 @admin_required
@@ -332,7 +328,7 @@ def change_admin_password():
     if action == 'reset':
         reset_to_default()
         flash('Admin password reverted to env/default.', 'success')
-        return redirect(url_for('admin.settings'))
+        return redirect(request.referrer or url_for('admin.dashboard'))
 
     current = request.form.get('current_password') or ''
     new_pw = request.form.get('new_password') or ''
@@ -340,13 +336,13 @@ def change_admin_password():
 
     if not verify_admin_password(current):
         flash('Current password is incorrect.', 'error')
-        return redirect(url_for('admin.settings'))
+        return redirect(request.referrer or url_for('admin.dashboard'))
     if not new_pw or len(new_pw) < 8:
         flash('New password must be at least 8 characters.', 'error')
-        return redirect(url_for('admin.settings'))
+        return redirect(request.referrer or url_for('admin.dashboard'))
     if new_pw != confirm:
         flash('New password and confirmation do not match.', 'error')
-        return redirect(url_for('admin.settings'))
+        return redirect(request.referrer or url_for('admin.dashboard'))
 
     set_admin_password(new_pw)
     flash('Admin password changed. Use the new password on next login.', 'success')

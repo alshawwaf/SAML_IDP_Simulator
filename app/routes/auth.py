@@ -1,4 +1,7 @@
+import base64
+
 from flask import Blueprint, request, render_template, session
+from lxml import etree
 
 from app.utils.saml import IdPHandler
 from app.utils.user_manager import UserManager
@@ -74,8 +77,14 @@ def login():
                 continue
             attributes[claim] = val if isinstance(val, list) else [val]
 
+    # A relative ACS (the built-in /saml-test/acs loopback) resolves to this
+    # deployment's own host, so the test works on any deploy without config.
+    acs_url = ctx["acs_url"]
+    if acs_url.startswith("/"):
+        acs_url = request.url_root.rstrip("/") + acs_url
+
     user_info = {"email": user.email, "attributes": attributes}
-    sp_info = {"entity_id": ctx.get("sp_entity_id") or "", "acs_url": ctx["acs_url"]}
+    sp_info = {"entity_id": ctx.get("sp_entity_id") or "", "acs_url": acs_url}
 
     saml_response = saml_handler.build_response(
         user_info, sp_info, request_id=ctx.get("request_id"),
@@ -86,6 +95,58 @@ def login():
     return render_template(
         'auth/saml_post.html',
         saml_response=saml_response,
-        acs_url=ctx["acs_url"],
+        acs_url=acs_url,
         relay_state=relay_state,
+    )
+
+
+TEST_SP_ENTITY = "urn:cp-idp-simulator:saml-test"
+
+
+@auth_bp.route('/saml-test')
+def saml_test_start():
+    """IdP-initiated SSO against the built-in loopback test SP — verify the
+    full SAML flow end-to-end without any external Service Provider."""
+    sp = ServiceProvider.query.filter_by(entity_id=TEST_SP_ENTITY).first()
+    if sp is None:
+        return ("Built-in SAML test SP not found. Redeploy to re-seed it, or add "
+                f"a Service Provider with Entity ID '{TEST_SP_ENTITY}' and "
+                "ACS URL '/saml-test/acs'.", 404)
+    session['saml_ctx'] = {
+        "request_id": None,
+        "sp_entity_id": sp.entity_id,
+        "acs_url": sp.acs_url,
+        "relay_state": None,
+        "sp_id": sp.id,
+    }
+    return render_template('auth/login.html', sp_name="Built-in SAML Test")
+
+
+@auth_bp.route('/saml-test/acs', methods=['POST'])
+def saml_test_acs():
+    """Loopback ACS: decode and display the assertion the IdP just issued, with
+    a signature-verified badge. CSRF-exempt (a SAML POST carries no Flask token)."""
+    raw = request.form.get('SAMLResponse', '')
+    try:
+        xml_bytes = base64.b64decode(raw)
+        parser = etree.XMLParser(resolve_entities=False, no_network=True,
+                                 dtd_validation=False, load_dtd=False)
+        root = etree.fromstring(xml_bytes, parser=parser)
+    except Exception:
+        return "Invalid or missing SAMLResponse.", 400
+
+    S = "urn:oasis:names:tc:SAML:2.0:assertion"
+    assertion = root.find(f"{{{S}}}Assertion")
+    nameid_el = assertion.find(f"{{{S}}}Subject/{{{S}}}NameID") if assertion is not None else None
+    attrs = {}
+    if assertion is not None:
+        for a in assertion.findall(f".//{{{S}}}Attribute"):
+            attrs[a.get("Name")] = [v.text for v in a.findall(f"{{{S}}}AttributeValue")]
+
+    return render_template(
+        'auth/saml_test_result.html',
+        verified=saml_handler.verify_signature(xml_bytes),
+        nameid=(nameid_el.text if nameid_el is not None else None),
+        attrs=attrs,
+        pretty_xml=etree.tostring(root, pretty_print=True).decode("utf-8"),
     )

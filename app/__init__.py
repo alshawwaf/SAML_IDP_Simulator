@@ -90,8 +90,23 @@ def seed_default_data():
     # deployment under Admin → Service Providers. The claim mappings are the
     # ones confirmed working against real SmartConsole, Infinity Portal,
     # Identity Awareness (Captive Portal SAML), Remote Access VPN, and
-    # Identity & Trust.
+    # Identity & Trust — plus a built-in loopback test SP (/saml-test).
     default_sps = [
+        {
+            # Built-in loopback test SP — works on any deploy with no external
+            # Service Provider. Visit /saml-test to run SSO and view the decoded,
+            # signed assertion. The ACS is relative so it resolves to this host.
+            "name": "Built-in SAML Test",
+            "entity_id": "urn:cp-idp-simulator:saml-test",
+            "acs_url": "/saml-test/acs",
+            "attr_map": [
+                {"claim": "email", "value": "email"},
+                {"claim": "firstName", "value": "first_name"},
+                {"claim": "lastName", "value": "last_name"},
+                {"claim": "groups", "value": "groups"},
+                {"claim": "userId", "value": "user_id"},
+            ],
+        },
         {
             # Check Point SmartConsole admin SAML (R81.20+). The IdP signs the
             # SAML Response (not just the assertion) — see app/utils/saml.py.
@@ -287,6 +302,7 @@ def create_app():
         # a form with no Flask CSRF token). Exempt just the /sso view; /login
         # keeps CSRF protection (it's a browser form that includes the token).
         csrf.exempt(app.view_functions['auth.sso'])
+        csrf.exempt(app.view_functions['auth.saml_test_acs'])
 
         # Import SCIM models before create_all() so their tables get created
         # in the same pass. The import is no-op-cheap when SCIM is off — it

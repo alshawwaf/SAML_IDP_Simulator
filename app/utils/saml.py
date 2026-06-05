@@ -193,3 +193,20 @@ class IdPHandler:
             signed.remove(sig)
             signed.insert(1, sig)  # index 0 is Issuer
         return signed
+
+    def verify_signature(self, xml_bytes) -> bool:
+        """True if the assertion in a decoded Response is validly signed by our
+        own certificate. Used by the built-in SAML test viewer."""
+        from signxml import XMLVerifier
+        try:
+            parser = etree.XMLParser(resolve_entities=False, no_network=True,
+                                     dtd_validation=False, load_dtd=False)
+            root = etree.fromstring(xml_bytes, parser=parser)
+            assertion = root.find(_q(SAML_NS, "Assertion"))
+            if assertion is None:
+                return False
+            cert = self.cert.decode("ascii") if isinstance(self.cert, bytes) else self.cert
+            XMLVerifier().verify(assertion, x509_cert=cert)
+            return True
+        except Exception:
+            return False

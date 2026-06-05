@@ -150,6 +150,10 @@ All configuration is via environment variables — defaults work out of the box.
 
 ## SAML usage
 
+### Quick test — no Service Provider needed
+
+A built-in **loopback test** verifies the IdP end-to-end on any deployment with zero configuration. Click **Try SAML SSO** on the landing page (or **Test SAML SSO** on the admin dashboard), sign in with a demo user, and you land on a page showing the decoded SAML Response, the parsed claims, and a **signature-verified** badge. It's seeded as the **Built-in SAML Test** Service Provider and posts to a loopback ACS (`/saml-test/acs`) on the IdP itself — a working example out of the box, before you wire up any Check Point product.
+
 ### How SP-initiated SSO works
 
 ```mermaid
@@ -317,6 +321,7 @@ Every outbound request is recorded in **Admin → SCIM → Push Log** with full 
 | `/logout` | Ends the session |
 | `/metadata` · `/download-metadata` | IdP SAML metadata (inline / as a file) |
 | `/download-cert` | Public SAML signing certificate (PEM) |
+| `/saml-test` · `/saml-test/acs` | Built-in loopback SAML test (IdP-initiated) + decoded-assertion viewer |
 | `/admin/` | Admin portal |
 
 </details>

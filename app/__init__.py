@@ -4,6 +4,7 @@ import uuid
 
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
+from sqlalchemy.exc import IntegrityError
 
 from app.utils.models import db, User, ServiceProvider, ensure_schema
 from app.utils.config_manager import config_manager
@@ -173,8 +174,12 @@ def seed_default_data():
             )
             user.set_password(user_data["password"])
             db.session.add(user)
-        db.session.commit()
-        logger.info(f"Created {len(default_users)} default users")
+        try:
+            db.session.commit()
+            logger.info(f"Created {len(default_users)} default users")
+        except IntegrityError:
+            db.session.rollback()  # another worker seeded first — safe to ignore
+            logger.info("Default users already present; skipping seed.")
     
     # Create default service providers if none exist
     if ServiceProvider.query.count() == 0:
@@ -187,8 +192,12 @@ def seed_default_data():
                 attr_map=sp_data["attr_map"],
             )
             db.session.add(sp)
-        db.session.commit()
-        logger.info(f"Created {len(default_sps)} default service providers")
+        try:
+            db.session.commit()
+            logger.info(f"Created {len(default_sps)} default service providers")
+        except IntegrityError:
+            db.session.rollback()  # another worker seeded first — safe to ignore
+            logger.info("Default service providers already present; skipping seed.")
 
 
 def _log_admin_credentials():
@@ -200,6 +209,31 @@ def _log_admin_credentials():
     else:
         source = "from ADMIN_PASSWORD env var"
     logger.info("ADMIN portal: username=%s, password=%s", config_manager.ADMIN_USERNAME, source)
+
+
+def _init_database():
+    """Create tables, run additive migrations, and seed defaults — serialized
+    across processes with an exclusive file lock so concurrent gunicorn workers
+    can't race on a fresh database (duplicate CREATE TABLE / UNIQUE-constraint
+    seed inserts). On platforms without fcntl (e.g. Windows dev) the lock is a
+    no-op, which is fine because those run single-process.
+    """
+    PERSIST_DIR.mkdir(parents=True, exist_ok=True)
+    lock_file = open(PERSIST_DIR / ".init.lock", "w")
+    try:
+        try:
+            import fcntl
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        except (ImportError, OSError):
+            pass  # no fcntl available — single-process dev, nothing to serialize
+        db.create_all()
+        ensure_schema(db.engine)
+        seed_default_data()
+        if config_manager.ENABLE_SCIM:
+            from app.routes.scim.bootstrap import seed_default_scim_data
+            seed_default_scim_data()
+    finally:
+        lock_file.close()  # closing the fd releases the flock
 
 
 def create_app():
@@ -260,16 +294,12 @@ def create_app():
         if config_manager.ENABLE_SCIM:
             from app.utils import models_scim  # noqa: F401
 
-        db.create_all()
-        ensure_schema(db.engine)
-        seed_default_data()
+        _init_database()
         _log_admin_credentials()
 
         if config_manager.ENABLE_SCIM:
             from app.routes.scim import register_scim_blueprints
-            from app.routes.scim.bootstrap import seed_default_scim_data
             register_scim_blueprints(app, csrf)
-            seed_default_scim_data()
             if config_manager.SCIM_ENCRYPTION_KEY_DERIVED:
                 logger.info("SCIM encryption key auto-derived from SECRET_KEY (override with SCIM_ENCRYPTION_KEY env var)")
             logger.info(

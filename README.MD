@@ -43,7 +43,7 @@ It is built for Check Point Sales Engineers and PoC teams, and its SAML flow has
 
 ## Validated Check Point integrations
 
-The four integrations below have been tested through a full login round-trip. **Each ships pre-seeded as an editable template** (with placeholder identifiers) — on a fresh deploy you just replace the Entity ID / ACS URL with your environment's values; the attribute mappings are already filled in. Step-by-step recipes are in [SAML usage](#check-point-service-provider-recipes).
+The five integrations below have been tested through a full login round-trip. **Each ships pre-seeded** with the reference lab's actual values as a concrete, ready-to-inspect example — on a fresh deploy you replace the Entity ID / ACS URL with your own environment's values; the attribute mappings are already filled in. Step-by-step recipes are in [SAML usage](#check-point-service-provider-recipes).
 
 | Product | Integration | Key requirement |
 |---|---|---|
@@ -182,7 +182,7 @@ sequenceDiagram
 
 ### Check Point Service Provider recipes
 
-Each product below is pre-seeded as a template — replace the placeholder identifiers (`<your-mgmt-host>`, `<sp-id>`, `<your-tenant-id>`, `<your-gateway>`, `<region>`) with your values. Copy the Entity ID and ACS / Reply URL out of the Check Point product. The IdP signs both the Assertion and the Response, so all four accept it.
+Each product below shows the format; the seeded entry uses the reference lab's actual values (visible under **Service Providers**) as a concrete example. Replace the host / tenant / SP-ID parts (`<your-mgmt-host>`, `<sp-id>`, `<your-tenant-id>`, `<your-gateway>`, `<region>`) with your own. Copy the Entity ID and ACS / Reply URL out of the Check Point product. The IdP signs both the Assertion and the Response, so all five accept it.
 
 <details open>
 <summary><b>1. SmartConsole — administrator login SAML (R81.20+)</b></summary>

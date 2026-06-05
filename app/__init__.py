@@ -86,11 +86,12 @@ def seed_default_data():
     ]
     
     # Default Service Provider templates for the five validated Check Point
-    # integrations. Entity ID / ACS URL are PLACEHOLDERS — replace them per
-    # deployment under Admin → Service Providers. The claim mappings are the
-    # ones confirmed working against real SmartConsole, Infinity Portal,
-    # Identity Awareness (Captive Portal SAML), Remote Access VPN, and
-    # Identity & Trust — plus a built-in loopback test SP (/saml-test).
+    # integrations. Entity ID / ACS URL are the reference-lab values these were
+    # validated against (concrete examples) — replace them with your own
+    # environment's values under Admin → Service Providers. The claim mappings
+    # are confirmed working against real SmartConsole, Infinity Portal, Identity
+    # Awareness (Captive Portal SAML), Remote Access VPN, and Identity & Trust —
+    # plus a built-in loopback test SP (/saml-test).
     default_sps = [
         {
             # Built-in loopback test SP — works on any deploy with no external
@@ -111,8 +112,8 @@ def seed_default_data():
             # Check Point SmartConsole admin SAML (R81.20+). The IdP signs the
             # SAML Response (not just the assertion) — see app/utils/saml.py.
             "name": "SmartConsole",
-            "entity_id": "https://smartconsole.example.com/cpmws/saml/acs/id/REPLACE-WITH-YOUR-SP-ID",
-            "acs_url": "https://smartconsole.example.com/cpmws/saml/acs/sso",
+            "entity_id": "https://mgmt-sp-ab5d99e9-f537-4a34-aba3-e1dd12d6104b.local/cpmws/saml/acs/id/ab5d99e9-f537-4a34-aba3-e1dd12d6104b",
+            "acs_url": "https://10.1.1.100/cpmws/saml/acs/sso",
             "attr_map": [
                 {"claim": "username", "value": "username"},
                 {"claim": "groups", "value": "groups"},
@@ -123,7 +124,7 @@ def seed_default_data():
             # claim must be non-empty, so map it to the stable user_id UUID.
             # ACS host is the regional portal endpoint (us / eu / au / in).
             "name": "InfinityPortal",
-            "entity_id": "REPLACE-WITH-YOUR-TENANT-ID.cloudinfra.checkpoint.com",
+            "entity_id": "263cdbe8-0077-4536-abc8-05b92c74679d.cloudinfra.checkpoint.com",
             "acs_url": "https://cloudinfra-gw-us.portal.checkpoint.com/api/saml/sso",
             "attr_map": [
                 {"claim": "identity/claims/givenname", "value": "first_name"},
@@ -139,8 +140,8 @@ def seed_default_data():
             # NameID carries the email; a single "username" claim (= email) is
             # all the captive portal needs.
             "name": "IDA-CaptivePortalSAML",
-            "entity_id": "https://gateway.example.com/connect/spPortal/ACS/ID/REPLACE-WITH-YOUR-SP-ID",
-            "acs_url": "https://gateway.example.com/connect/spPortal/ACS/Login/REPLACE-WITH-YOUR-SP-ID",
+            "entity_id": "https://10.1.1.111/connect/spPortal/ACS/ID/34b5af6d-4db7-43a6-a1cb-5298e884d0b3",
+            "acs_url": "https://10.1.1.111/connect/spPortal/ACS/Login/34b5af6d-4db7-43a6-a1cb-5298e884d0b3",
             "attr_map": [
                 {"claim": "username", "value": "email"},
             ],
@@ -151,8 +152,8 @@ def seed_default_data():
             # under /saml-vpn/. NameID=email; username->email plus a
             # "group attr" claim -> groups.
             "name": "RemoteAccessVPN",
-            "entity_id": "https://gateway.example.com/saml-vpn/spPortal/ACS/ID/REPLACE-WITH-YOUR-SP-ID",
-            "acs_url": "https://gateway.example.com/saml-vpn/spPortal/ACS/Login/REPLACE-WITH-YOUR-SP-ID",
+            "entity_id": "https://10.1.1.111/saml-vpn/spPortal/ACS/ID/acb09bcb-f847-448e-a38b-a92e466f9db4",
+            "acs_url": "https://10.1.1.111/saml-vpn/spPortal/ACS/Login/acb09bcb-f847-448e-a38b-a92e466f9db4",
             "attr_map": [
                 {"claim": "username", "value": "email"},
                 {"claim": "group attr", "value": "groups"},
@@ -163,7 +164,7 @@ def seed_default_data():
             # same shape as Infinity Portal but a distinct tenant. The userId
             # claim maps to the stable user_id UUID.
             "name": "IdentityAndTrust",
-            "entity_id": "REPLACE-WITH-YOUR-IDENTITY-TRUST-TENANT-ID.cloudinfra.checkpoint.com",
+            "entity_id": "68719a1b-574e-4845-b7f9-724b28fd33f4.cloudinfra.checkpoint.com",
             "acs_url": "https://cloudinfra-gw-us.portal.checkpoint.com/api/saml/sso",
             "attr_map": [
                 {"claim": "identity/claims/givenname", "value": "first_name"},

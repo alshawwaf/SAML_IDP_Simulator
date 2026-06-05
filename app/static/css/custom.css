@@ -98,6 +98,8 @@ h1, h2, h3, h4, h5, h6 {
    navbar's stacking context; bump it so it clears sibling content reliably. */
 .navbar .dropdown-menu {
   z-index: 1031;
+  /* Fully opaque so page content never bleeds through the open menu. */
+  background-color: var(--bg-elevated) !important;
 }
 .navbar-brand .text-gradient {
   font-size: 1.4rem !important;

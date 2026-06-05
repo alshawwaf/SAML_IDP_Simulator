@@ -20,7 +20,7 @@
 
 Standing up a real identity provider (Entra ID, Okta, …) just to demo or troubleshoot a Check Point SAML or SCIM integration is slow and brittle. This project is a lightweight IdP you fully control: point a Check Point Service Provider at it, sign in with a demo user, and get back a properly **signed SAML Response** — or flip on SCIM and push users into a Check Point SASE tenant.
 
-It is built for Check Point Sales Engineers and PoC teams, and its SAML flow has been **validated end-to-end against four Check Point products** (see below).
+It is built for Check Point Sales Engineers and PoC teams, and its SAML flow has been **validated end-to-end against five Check Point products** (see below).
 
 - **SAML 2.0** — SP-initiated SSO with a signed Response *and* signed Assertion, multiple Service Providers, and per-SP claim-to-attribute mapping.
 - **SCIM 2.0** — bidirectional: an inbound SCIM server (Entra ID / Okta push *in*) and an outbound SCIM client (push users *out* to Check Point SASE).
@@ -51,6 +51,7 @@ The four integrations below have been tested through a full login round-trip. **
 | **Infinity Portal** | Generic SAML Server | `userId` claim must be non-empty → mapped to `user_id` |
 | **Identity Awareness** | Captive Portal SAML | NameID = email; single `username → email` claim |
 | **Remote Access VPN** | Gateway `saml-vpn` portal SAML | `username → email` + `group attr → groups` |
+| **Identity & Trust** | Generic SAML Server (Infinity) | Same as Infinity Portal, distinct tenant |
 
 ## Quick start
 
@@ -246,6 +247,26 @@ The same `<sp-id>` appears in both the Entity ID and the ACS path. NameID is the
 | `group attr` | `groups` |
 
 Same shape as Identity Awareness but under the gateway's `/saml-vpn/` portal. The `group attr` claim name contains a space — enter it exactly.
+
+</details>
+
+<details>
+<summary><b>5. Identity & Trust — Generic SAML Server (Infinity)</b></summary>
+
+| Field | Value |
+|---|---|
+| **Entity ID** | `<your-tenant-id>.cloudinfra.checkpoint.com` |
+| **ACS / Reply URL** | `https://cloudinfra-gw-<region>.portal.checkpoint.com/api/saml/sso` |
+
+| Claim name | User field |
+|---|---|
+| `identity/claims/givenname` | `first_name` |
+| `identity/claims/name` | `last_name` |
+| `identity/claims/emailaddress` | `email` |
+| `groups` | `groups` |
+| `urn:mace:dir:attribute-def:userId` | `user_id` |
+
+Identity & Trust uses the same Generic SAML Server shape as Infinity Portal — same claims and regional ACS — under a separate tenant Entity ID.
 
 </details>
 

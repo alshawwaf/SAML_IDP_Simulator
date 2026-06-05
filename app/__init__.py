@@ -84,11 +84,12 @@ def seed_default_data():
         },
     ]
     
-    # Default Service Provider templates for the four validated Check Point
+    # Default Service Provider templates for the five validated Check Point
     # integrations. Entity ID / ACS URL are PLACEHOLDERS — replace them per
     # deployment under Admin → Service Providers. The claim mappings are the
     # ones confirmed working against real SmartConsole, Infinity Portal,
-    # Identity Awareness (Captive Portal SAML), and Remote Access VPN.
+    # Identity Awareness (Captive Portal SAML), Remote Access VPN, and
+    # Identity & Trust.
     default_sps = [
         {
             # Check Point SmartConsole admin SAML (R81.20+). The IdP signs the
@@ -139,6 +140,21 @@ def seed_default_data():
             "attr_map": [
                 {"claim": "username", "value": "email"},
                 {"claim": "group attr", "value": "groups"},
+            ],
+        },
+        {
+            # Check Point Infinity Identity & Trust — Generic SAML Server, the
+            # same shape as Infinity Portal but a distinct tenant. The userId
+            # claim maps to the stable user_id UUID.
+            "name": "IdentityAndTrust",
+            "entity_id": "REPLACE-WITH-YOUR-IDENTITY-TRUST-TENANT-ID.cloudinfra.checkpoint.com",
+            "acs_url": "https://cloudinfra-gw-us.portal.checkpoint.com/api/saml/sso",
+            "attr_map": [
+                {"claim": "identity/claims/givenname", "value": "first_name"},
+                {"claim": "identity/claims/name", "value": "last_name"},
+                {"claim": "identity/claims/emailaddress", "value": "email"},
+                {"claim": "groups", "value": "groups"},
+                {"claim": "urn:mace:dir:attribute-def:userId", "value": "user_id"},
             ],
         },
     ]

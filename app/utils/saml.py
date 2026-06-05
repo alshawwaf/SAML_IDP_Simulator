@@ -115,9 +115,14 @@ class IdPHandler:
             user_info, issuer, audience, acs_url, assertion_id,
             now, not_before, not_after, request_id,
         )
-        response.append(self._sign_assertion(assertion))
+        # Sign the assertion, embed it, then sign the whole Response. Check
+        # Point SPs (SmartConsole/cpmws) validate the Response-level signature;
+        # signing both is the most broadly compatible. Exclusive C14N keeps the
+        # assertion signature valid after it's nested in the signed Response.
+        response.append(self._sign(assertion))
+        signed_response = self._sign(response)
 
-        xml_bytes = etree.tostring(response, xml_declaration=False)
+        xml_bytes = etree.tostring(signed_response, xml_declaration=False)
         return base64.b64encode(xml_bytes).decode("ascii")
 
     def _build_assertion(self, user_info, issuer, audience, acs_url, assertion_id,
@@ -170,16 +175,19 @@ class IdPHandler:
                     etree.SubElement(attr, _q(SAML_NS, "AttributeValue")).text = str(v)
         return assertion
 
-    def _sign_assertion(self, assertion):
-        """Enveloped RSA-SHA256 / exclusive-C14N signature over the assertion.
-        Repositions ds:Signature to directly follow Issuer (SAML schema order)."""
+    def _sign(self, element):
+        """Enveloped RSA-SHA256 / exclusive-C14N signature over `element`,
+        referencing its own ID. Repositions ds:Signature to directly follow
+        Issuer — the SAML schema requires Signature immediately after Issuer
+        for both Assertion and Response."""
         signer = XMLSigner(
             method=methods.enveloped,
             signature_algorithm="rsa-sha256",
             digest_algorithm="sha256",
             c14n_algorithm="http://www.w3.org/2001/10/xml-exc-c14n#",
         )
-        signed = signer.sign(assertion, key=self.key, cert=self.cert)
+        signed = signer.sign(element, key=self.key, cert=self.cert,
+                             reference_uri=element.get("ID"))
         sig = signed.find(_q(DS_NS, "Signature"))
         if sig is not None:
             signed.remove(sig)

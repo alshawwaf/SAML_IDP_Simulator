@@ -1,26 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>SAML Redirect</title>
+  <meta charset="UTF-8">
+  <title>Signing you in…</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background:#0a0a10; color:#c9cedb;
+           display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+    .box { text-align:center; }
+    .spinner { width:38px; height:38px; border:3px solid rgba(255,255,255,.15);
+               border-top-color:#3b82f6; border-radius:50%; animation:spin .8s linear infinite;
+               margin:0 auto 1rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    button { margin-top:1rem; background:#3b82f6; color:#fff; border:0;
+             padding:.6rem 1.2rem; border-radius:8px; cursor:pointer; font-size:1rem; }
+  </style>
 </head>
 <body>
-    <noscript>
-        <p><strong>Note:</strong> JavaScript is required for automatic redirection.</p>
-    </noscript>
-    
+  <div class="box">
+    <div class="spinner"></div>
+    <p>Signing you in… redirecting to your application.</p>
     <form id="samlForm" method="post" action="{{ acs_url }}">
-        <input type="hidden" name="SAMLResponse" value="{{ saml_response }}">
-        {% if relay_state %}
-        <input type="hidden" name="RelayState" value="{{ relay_state }}">
-        {% endif %}
-        <input type="submit" value="Continue to Service Provider">
+      <input type="hidden" name="SAMLResponse" value="{{ saml_response }}">
+      {% if relay_state %}
+      <input type="hidden" name="RelayState" value="{{ relay_state }}">
+      {% endif %}
+      <noscript><button type="submit">Continue</button></noscript>
     </form>
-
-    <script>
-        // Immediate form submission after element creation
-        (function() {
-            document.getElementById('samlForm').submit();
-        })();
-    </script>
+  </div>
+  <!-- Auto-POST the signed response to the SP's ACS (HTTP-POST binding). -->
+  <script>document.getElementById('samlForm').submit();</script>
 </body>
 </html>

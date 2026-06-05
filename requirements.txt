@@ -6,7 +6,8 @@ signxml==3.2.2
 lxml==5.2.2
 python-dotenv==1.0.1
 Jinja2==3.1.4
-cryptography==42.0.8
+cryptography==41.0.7      # capped <42 so the pinned pyOpenSSL below can install
+pyOpenSSL==23.3.0         # signxml 3.2.2 imports OpenSSL.crypto.verify, removed in pyOpenSSL >=24
 Werkzeug==3.0.3
 flask-login
 gunicorn==22.0.0

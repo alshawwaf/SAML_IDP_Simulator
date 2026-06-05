@@ -776,3 +776,22 @@ code {
 }
 .navbar .dropdown-menu form { margin: 0; }
 .navbar .dropdown-item { cursor: pointer; }
+
+/* ===================== Dashboard stat cards ===================== */
+.stat-card { transition: transform 0.15s ease, border-color 0.15s ease; }
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-hover) !important;
+}
+.stat-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--primary-dim), var(--secondary));
+  color: #fff;
+  font-size: 1.3rem;
+}

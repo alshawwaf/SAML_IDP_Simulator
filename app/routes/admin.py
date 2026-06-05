@@ -20,10 +20,12 @@ def admin_required(f):
 @admin_bp.route('/')
 @admin_required
 def dashboard():
-    users = User.query.all()
-    sps = ServiceProvider.query.all()
-    user_fields = User.get_editable_user_fields()
-    return render_template('admin/users.html', users=users, sps=sps, user_fields=user_fields)
+    return render_template(
+        'admin/dashboard.html',
+        user_count=User.query.count(),
+        sp_count=ServiceProvider.query.count(),
+        config=config_manager.get_all_config(),
+    )
 
 @admin_bp.route('/settings')
 @admin_required

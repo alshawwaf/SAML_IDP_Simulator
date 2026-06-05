@@ -657,3 +657,18 @@ code {
     scroll-behavior: auto !important;
   }
 }
+
+/* Modals whose <form> wraps header+body+footer break Bootstrap's
+   .modal-dialog-scrollable layout (it expects header/body/footer as direct
+   flex children of .modal-content). Make the wrapping <form> the flex column
+   so the body scrolls and the footer stays pinned, instead of the content
+   overflowing past the viewport (Save/Cancel getting cut off). */
+.modal-dialog-scrollable .modal-content > form {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 100%;
+}
+.modal-dialog-scrollable .modal-content > form > .modal-body {
+  overflow-y: auto;
+}

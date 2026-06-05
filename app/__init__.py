@@ -84,38 +84,35 @@ def seed_default_data():
         },
     ]
     
-    # Default Service Providers for Check Point products
+    # Default Service Provider templates for the two validated Check Point
+    # integrations. Entity ID / ACS URL are PLACEHOLDERS — replace them per
+    # deployment under Admin → Service Providers. The claim mappings are the
+    # ones confirmed working against real SmartConsole + Infinity Portal.
     default_sps = [
         {
-            "name": "Harmony Connect Portal",
-            "entity_id": "https://10.1.1.111/connect/spPortal/ACS/ID/4bd3c39d-3f85-444f-9230-92c922b93db4",
-            "acs_url": "https://10.1.1.111/connect/spPortal/ACS/Login/4bd3c39d-3f85-444f-9230-92c922b93db4",
-            "attr_map": [
-                {"claim": "email", "value": "email"},
-                {"claim": "firstName", "value": "first_name"},
-                {"claim": "lastName", "value": "last_name"},
-                {"claim": "groups", "value": "groups"},
-            ],
-        },
-        {
-            "name": "Quantum Security Gateway",
-            "entity_id": "https://gateway.cpdemo.local/saml/sp",
-            "acs_url": "https://gateway.cpdemo.local/saml/acs",
-            "attr_map": [
-                {"claim": "email", "value": "email"},
-                {"claim": "uid", "value": "username"},
-                {"claim": "groups", "value": "groups"},
-            ],
-        },
-        {
+            # Check Point SmartConsole admin SAML (R81.20+). The IdP signs the
+            # SAML Response (not just the assertion) — see app/utils/saml.py.
             "name": "SmartConsole",
-            "entity_id": "https://smartconsole.cpdemo.local/saml/metadata",
-            "acs_url": "https://smartconsole.cpdemo.local/saml/acs",
+            "entity_id": "https://smartconsole.example.com/cpmws/saml/acs/id/REPLACE-WITH-YOUR-SP-ID",
+            "acs_url": "https://smartconsole.example.com/cpmws/saml/acs/sso",
             "attr_map": [
-                {"claim": "email", "value": "email"},
-                {"claim": "name", "value": "first_name"},
-                {"claim": "surname", "value": "last_name"},
-                {"claim": "role", "value": "groups"},
+                {"claim": "username", "value": "username"},
+                {"claim": "groups", "value": "groups"},
+            ],
+        },
+        {
+            # Check Point Infinity Portal (Generic SAML Server). The userId
+            # claim must be non-empty, so map it to the stable user_id UUID.
+            # ACS host is the regional portal endpoint (us / eu / au / in).
+            "name": "InfinityPortal",
+            "entity_id": "REPLACE-WITH-YOUR-TENANT-ID.cloudinfra.checkpoint.com",
+            "acs_url": "https://cloudinfra-gw-us.portal.checkpoint.com/api/saml/sso",
+            "attr_map": [
+                {"claim": "identity/claims/givenname", "value": "first_name"},
+                {"claim": "identity/claims/name", "value": "last_name"},
+                {"claim": "identity/claims/emailaddress", "value": "email"},
+                {"claim": "groups", "value": "groups"},
+                {"claim": "urn:mace:dir:attribute-def:userId", "value": "user_id"},
             ],
         },
     ]

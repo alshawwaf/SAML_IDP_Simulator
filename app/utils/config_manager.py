@@ -13,6 +13,34 @@ DEFAULT_ADMIN_PASSWORD = "CpDemo2026"
 # the saml_idp_data volume so it survives Dokploy redeploys.
 ADMIN_PASSWORD_HASH_FILE = BASE_DIR / "data" / ".admin-password-hash"
 
+# Persisted Flask secret key. If SECRET_KEY isn't supplied via env, generate a
+# strong random key ONCE and persist it on the data volume so it stays stable
+# across redeploys — a stable key keeps admin sessions valid and lets the
+# Fernet-encrypted SCIM tokens (whose key derives from SECRET_KEY) survive a
+# restart. NEVER hardcode this value in source or compose.
+SECRET_KEY_FILE = BASE_DIR / "data" / ".secret-key"
+
+
+def _load_or_create_secret_key() -> str:
+    import secrets
+    try:
+        if SECRET_KEY_FILE.exists():
+            existing = SECRET_KEY_FILE.read_text().strip()
+            if existing:
+                return existing
+    except OSError:
+        pass
+    new_key = secrets.token_urlsafe(48)
+    try:
+        SECRET_KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        SECRET_KEY_FILE.write_text(new_key + "\n")
+        SECRET_KEY_FILE.chmod(0o600)
+    except OSError:
+        # Read-only FS or no POSIX perms — fall back to an ephemeral key.
+        # The app still runs; sessions just reset on restart.
+        pass
+    return new_key
+
 
 class ConfigManager:
     def __init__(self):
@@ -23,10 +51,11 @@ class ConfigManager:
         self.PORT = int(os.getenv("IDP_PORT", 9001))
         self.HOST = os.getenv("IDP_HOST", "0.0.0.0")
         self.ENABLE_SSL = os.getenv("ENABLE_SSL", "true").lower() == "true"
-        self.DEBUG = os.getenv("FLASK_DEBUG", "True").lower() == "true"
+        self.DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
-        # Security & Identity
-        self.SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production-" + os.urandom(8).hex())
+        # Security & Identity. Env var wins; otherwise a stable random key is
+        # generated and persisted to the data volume (never hardcoded).
+        self.SECRET_KEY = os.getenv("SECRET_KEY") or _load_or_create_secret_key()
 
         # Entity ID and SSO URL.
         # If the operator sets these env vars explicitly, we honor them verbatim.

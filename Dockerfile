@@ -10,10 +10,9 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy and install Python dependencies
+# Copy and install Python dependencies (all pinned in requirements.txt).
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir lxml signxml cryptography pysaml2 && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
@@ -25,7 +24,8 @@ RUN chmod +x entrypoint.py
 # Environment variable paths (certs will be generated at runtime using IDP_HOST)
 # Must match IDP_CERT/IDP_KEY in app/utils/path_config.py (CERTS_DIR = /app/app/certs)
 ENV CERT_PATH=/app/app/certs/idp-cert.pem \
-    KEY_PATH=/app/app/certs/idp-key.pem
+    KEY_PATH=/app/app/certs/idp-key.pem \
+    USE_GUNICORN=true
 
 # Expose the port Flask runs on
 EXPOSE 5000

@@ -45,10 +45,32 @@ def generate_certificates():
     print("✅ Certificate successfully created.")
 
 
+def run_server():
+    """Serve via gunicorn when USE_GUNICORN=true (the container default), else
+    the Flask dev server. Falls back to Flask if gunicorn isn't installed
+    (e.g. a minimal local checkout, or Windows where gunicorn is unsupported)."""
+    if os.getenv("USE_GUNICORN", "false").lower() == "true":
+        try:
+            import gunicorn  # noqa: F401
+            host = os.getenv("IDP_HOST", "0.0.0.0")
+            port = os.getenv("IDP_PORT", "5000")
+            workers = os.getenv("GUNICORN_WORKERS", "2")
+            print(f"🧭 Starting gunicorn on {host}:{port} ({workers} workers)...")
+            subprocess.run(
+                ["gunicorn", "--bind", f"{host}:{port}",
+                 "--workers", workers, "--access-logfile", "-", "run:app"],
+                check=True,
+            )
+            return
+        except ImportError:
+            print("⚠️  USE_GUNICORN=true but gunicorn isn't installed — using the Flask server.")
+    subprocess.run(["python", "run.py"], check=True)
+
+
 def main():
     print("🚀 Starting SAML Identity Provider...")
     generate_certificates()
-    subprocess.run(["python", "run.py"])
+    run_server()
 
 
 if __name__ == "__main__":

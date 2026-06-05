@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from app.utils.models import db, User, ServiceProvider
 from app.utils.config_manager import config_manager
+from app.utils.extensions import limiter
 from werkzeug.security import generate_password_hash
 import json
 
@@ -295,6 +296,7 @@ def get_sp_xml(sp_id):
 # ==================== AUTH ====================
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute", methods=["POST"])
 def login():
     from app.utils.admin_password import verify_admin_password
     if request.method == 'POST':

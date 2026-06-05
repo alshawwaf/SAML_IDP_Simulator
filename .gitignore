@@ -173,3 +173,8 @@ cython_debug/
 
 # SAML signing material — never commit private keys / certs
 app/certs/*.pem
+
+# Local runtime data — SQLite DB + persisted secrets/tokens. Never commit.
+*.db
+/data/
+instance/

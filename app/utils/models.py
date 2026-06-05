@@ -31,10 +31,14 @@ class User(db.Model, UserMixin):
 
     @staticmethod
     def get_editable_user_fields():
-        # `active` is excluded so it doesn't appear in the SAML attribute-mapping
-        # dropdowns (sp_edit/sp_new templates iterate user_fields). It's still
-        # writable via SCIM and (later) the SCIM admin UI.
-        exclude = {"id", "user_id", "password_hash", "created_at", "updated_at", "active"}
+        # Source fields offered in the SAML claim-mapping dropdowns
+        # (sp_new/sp_edit/sp_modals iterate this list). `user_id` — the stable
+        # per-user UUID — is included as a read-only claim source so an IdP
+        # "userId"/"objectId" claim can map to an immutable identifier, mirroring
+        # Entra objectId / Okta id. It is NOT user-editable (the add/edit-user
+        # forms use a fixed field set, not this list). `active` stays excluded
+        # (it's writable via SCIM, not a useful SAML claim).
+        exclude = {"id", "password_hash", "created_at", "updated_at", "active"}
         fields = [c.name for c in User.__table__.columns if c.name not in exclude]
         fields.append("password")
         return fields

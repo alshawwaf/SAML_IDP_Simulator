@@ -1,6 +1,7 @@
 """SCIM 2.0 blueprint package.
 
-Registered in app/__init__.py only when config_manager.ENABLE_SCIM is true.
+Registered in app/__init__.py unconditionally; gated at runtime by
+config_manager.scim_enabled() (default on, toggleable from the admin portal).
 
 Phase 0: empty blueprint with a health endpoint to confirm wiring.
 Phase 1+: SCIM server endpoints (/scim/v2/Users, /Groups, etc.).
@@ -33,6 +34,22 @@ def register_scim_blueprints(app, csrf=None):
     from app.routes.scim import client  # noqa: F401
     from app.routes.scim import admin as scim_admin
     from app.routes.scim import sync as scim_sync
+
+    # Runtime gate: SCIM is toggleable from the admin portal. The routes are
+    # always registered, but these run before each request and short-circuit
+    # when SCIM is disabled — so the toggle needs no restart.
+    @scim_bp.before_request
+    def _gate_scim_server():
+        from flask import abort
+        if not config_manager.scim_enabled():
+            abort(404)
+
+    @scim_admin.scim_admin_bp.before_request
+    def _gate_scim_admin():
+        if not config_manager.scim_enabled():
+            from flask import flash, redirect, url_for
+            flash("SCIM provisioning is disabled. Enable it from the dashboard.", "error")
+            return redirect(url_for("admin.dashboard"))
 
     app.register_blueprint(scim_bp)
     app.register_blueprint(scim_admin.scim_admin_bp)

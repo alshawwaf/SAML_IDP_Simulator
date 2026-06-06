@@ -245,7 +245,7 @@ def _init_database():
         db.create_all()
         ensure_schema(db.engine)
         seed_default_data()
-        if config_manager.ENABLE_SCIM:
+        if config_manager.scim_enabled():
             from app.routes.scim.bootstrap import seed_default_scim_data
             seed_default_scim_data()
     finally:
@@ -275,10 +275,11 @@ def create_app():
     csrf.init_app(app)
     limiter.init_app(app)
 
-    # Make ENABLE_SCIM visible to every template — drives nav-link visibility.
+    # Make the runtime SCIM flag visible to every template — drives nav-link
+    # visibility and the dashboard toggle.
     @app.context_processor
     def inject_scim_flag():
-        return {"scim_enabled": config_manager.ENABLE_SCIM}
+        return {"scim_enabled": config_manager.scim_enabled()}
 
     # Admin identity + password state for the navbar account menu (rendered on
     # every page; both lookups are cheap — an attribute read and a file check).
@@ -305,26 +306,24 @@ def create_app():
         csrf.exempt(app.view_functions['auth.sso'])
         csrf.exempt(app.view_functions['auth.saml_test_acs'])
 
-        # Import SCIM models before create_all() so their tables get created
-        # in the same pass. The import is no-op-cheap when SCIM is off — it
-        # just defines SQLAlchemy classes; no routes or workers start.
-        if config_manager.ENABLE_SCIM:
-            from app.utils import models_scim  # noqa: F401
+        # SCIM models are always imported so their tables exist; the SCIM
+        # feature itself is gated at runtime by config_manager.scim_enabled().
+        from app.utils import models_scim  # noqa: F401
 
         _init_database()
         _log_admin_credentials()
 
-        if config_manager.ENABLE_SCIM:
-            from app.routes.scim import register_scim_blueprints
-            register_scim_blueprints(app, csrf)
-            if config_manager.SCIM_ENCRYPTION_KEY_DERIVED:
-                logger.info("SCIM encryption key auto-derived from SECRET_KEY (override with SCIM_ENCRYPTION_KEY env var)")
-            logger.info(
-                "SCIM endpoints enabled at %s (server) and /admin/scim (admin UI)",
-                config_manager.SCIM_BASE_PATH,
-            )
-        else:
-            logger.info("SCIM disabled (set ENABLE_SCIM=true to enable).")
+        # SCIM routes are always registered; scim_enabled() (runtime, default on)
+        # gates them so the admin can toggle SCIM from the portal without a restart.
+        from app.routes.scim import register_scim_blueprints
+        register_scim_blueprints(app, csrf)
+        if config_manager.SCIM_ENCRYPTION_KEY_DERIVED:
+            logger.info("SCIM encryption key auto-derived from SECRET_KEY (override with SCIM_ENCRYPTION_KEY env var)")
+        logger.info(
+            "SCIM registered at %s; currently %s (toggle in the admin dashboard).",
+            config_manager.SCIM_BASE_PATH,
+            "ENABLED" if config_manager.scim_enabled() else "disabled",
+        )
 
         logger.info("Application initialized and database created.")
 

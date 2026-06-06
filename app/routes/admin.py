@@ -318,6 +318,19 @@ def logout():
     return redirect(url_for('admin.login'))
 
 
+@admin_bp.route('/toggle-scim', methods=['POST'])
+@admin_required
+def toggle_scim():
+    """Enable/disable SCIM provisioning at runtime from the dashboard."""
+    if config_manager.SCIM_FORCED_OFF:
+        flash('SCIM is forced off by the ENABLE_SCIM=false environment variable.', 'error')
+        return redirect(request.referrer or url_for('admin.dashboard'))
+    enable = request.form.get('enable') == 'true'
+    config_manager.set_scim_enabled(enable)
+    flash(f"SCIM provisioning {'enabled' if enable else 'disabled'}.", 'success')
+    return redirect(request.referrer or url_for('admin.dashboard'))
+
+
 @admin_bp.route('/change-admin-password', methods=['POST'])
 @admin_required
 def change_admin_password():

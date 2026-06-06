@@ -51,8 +51,8 @@
             <!-- SCIM status -->
             <div class="d-flex align-items-center gap-2">
                 <span class="small text-muted">SCIM Provisioning:</span>
-                <span class="badge bg-{{ 'success' if config.ENABLE_SCIM else 'secondary' }}">
-                    {{ 'Enabled' if config.ENABLE_SCIM else 'Disabled' }}
+                <span class="badge bg-{{ 'success' if scim_enabled else 'secondary' }}">
+                    {{ 'Enabled' if scim_enabled else 'Disabled' }}
                 </span>
             </div>
         </div>

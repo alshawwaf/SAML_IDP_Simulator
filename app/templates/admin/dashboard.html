@@ -34,17 +34,23 @@
       </a>
     </div>
     <div class="col-md-4">
-      <a href="{{ url_for('scim_admin.dashboard') if scim_enabled else url_for('admin.idp_config') }}" class="text-decoration-none">
-        <div class="card glass border-0 h-100 stat-card">
-          <div class="card-body d-flex align-items-center gap-3">
-            <span class="stat-icon"><i class="bi bi-arrow-left-right"></i></span>
-            <div>
-              <div class="lh-1"><span class="badge bg-{{ 'success' if scim_enabled else 'secondary' }}">{{ 'Enabled' if scim_enabled else 'Disabled' }}</span></div>
-              <div class="text-muted small mt-2">SCIM Provisioning</div>
-            </div>
+      <div class="card glass border-0 h-100 stat-card">
+        <div class="card-body d-flex align-items-center gap-3">
+          <span class="stat-icon"><i class="bi bi-arrow-left-right"></i></span>
+          <div class="flex-grow-1">
+            <div class="lh-1"><span class="badge bg-{{ 'success' if scim_enabled else 'secondary' }}">{{ 'Enabled' if scim_enabled else 'Disabled' }}</span></div>
+            <div class="text-muted small mt-2">SCIM Provisioning</div>
           </div>
+          <form method="POST" action="{{ url_for('admin.toggle_scim') }}" class="m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="enable" value="{{ 'false' if scim_enabled else 'true' }}">
+            <button type="submit" class="btn btn-sm {{ 'btn-outline-danger' if scim_enabled else 'btn-outline-success' }}"
+                    title="{{ 'Disable' if scim_enabled else 'Enable' }} SCIM provisioning">
+              {{ 'Disable' if scim_enabled else 'Enable' }}
+            </button>
+          </form>
         </div>
-      </a>
+      </div>
     </div>
   </div>
 

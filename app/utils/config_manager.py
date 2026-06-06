@@ -93,14 +93,13 @@ class ConfigManager:
         self.DEFAULT_SP_ENTITY_ID = os.getenv("DEFAULT_SP_ENTITY_ID")
         self.DEFAULT_SP_ACS_URL = os.getenv("DEFAULT_SP_ACS_URL")
 
-        # SCIM 2.0 — disabled by default; SAML flow is unaffected when false.
-        # Two ways to enable:
-        #   1. ENABLE_SCIM=true env var (Dokploy Environment tab, .env file, etc.)
-        #   2. Create a marker file at /app/data/.enable-scim (or BASE_DIR/data/.enable-scim
-        #      locally) — useful when the env-var pipeline is broken or unavailable.
-        env_enabled = os.getenv("ENABLE_SCIM", "false").lower() == "true"
-        marker_path = BASE_DIR / "data" / ".enable-scim"
-        self.ENABLE_SCIM = env_enabled or marker_path.exists()
+        # SCIM 2.0 — ENABLED BY DEFAULT and toggleable at runtime from the admin
+        # portal. The SCIM routes are always registered; scim_enabled() gates
+        # them, so the toggle takes effect without a restart. The portal toggle
+        # writes/removes a disable marker on the data volume. ENABLE_SCIM=false
+        # forces SCIM off at the environment level (overrides the portal toggle).
+        self.SCIM_DISABLED_MARKER = BASE_DIR / "data" / ".scim-disabled"
+        self.SCIM_FORCED_OFF = os.getenv("ENABLE_SCIM", "").strip().lower() == "false"
         self.SCIM_BASE_PATH = os.getenv("SCIM_BASE_PATH", "/scim/v2")
         self.SCIM_PUSH_ON_USER_CHANGE = os.getenv("SCIM_PUSH_ON_USER_CHANGE", "false").lower() == "true"
 
@@ -155,6 +154,30 @@ class ConfigManager:
         data["IDP_ENTITY_ID"] = self.effective_entity_id()
         data["SSO_SERVICE_URL"] = self.effective_sso_url()
         return data
+
+    def scim_enabled(self) -> bool:
+        """Runtime SCIM on/off — default ON. An admin can disable/re-enable it
+        from the portal (toggles a marker file on the data volume); the SCIM
+        routes are always registered, so the change needs no restart.
+        ENABLE_SCIM=false forces it off and overrides the portal toggle."""
+        if self.SCIM_FORCED_OFF:
+            return False
+        try:
+            return not self.SCIM_DISABLED_MARKER.exists()
+        except OSError:
+            return True
+
+    def set_scim_enabled(self, enabled: bool) -> None:
+        """Persist the portal SCIM toggle via the disable marker file."""
+        self.SCIM_DISABLED_MARKER.parent.mkdir(parents=True, exist_ok=True)
+        if enabled:
+            try:
+                self.SCIM_DISABLED_MARKER.unlink()
+            except FileNotFoundError:
+                pass
+        else:
+            self.SCIM_DISABLED_MARKER.touch()
+
 
 # Exported singleton instance
 config_manager = ConfigManager()

@@ -143,7 +143,7 @@ All configuration is via environment variables — defaults work out of the box.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ENABLE_SCIM` | `false` | Master switch — `true` exposes `/scim/v2/*` and the SCIM admin pages |
+| `ENABLE_SCIM` | _on_ | SCIM is **on by default** and toggleable from the admin dashboard (no restart). Set `false` to force it off, overriding the portal toggle. |
 | `SCIM_PUSH_ON_USER_CHANGE` | `false` | Auto-push admin user CRUD to enabled outbound targets |
 | `SCIM_ENCRYPTION_KEY` | derived from `SECRET_KEY` | Fernet key for outbound-token storage. Set explicitly to decouple from `SECRET_KEY`. |
 | `SCIM_BASE_PATH` | `/scim/v2` | URL prefix for the SCIM server |
@@ -276,7 +276,7 @@ Identity & Trust uses the same Generic SAML Server shape as Infinity Portal — 
 
 ## SCIM 2.0 usage
 
-SCIM is off by default. Set `ENABLE_SCIM=true` and redeploy. The simulator works in both directions:
+SCIM is **on by default** and can be flipped on/off from the admin dashboard's **SCIM Provisioning** card — the routes are always registered and gated by a runtime flag, so the toggle takes effect immediately (no restart). Set `ENABLE_SCIM=false` to force it off at deploy time. The simulator works in both directions:
 
 | Direction | Mode | Use case |
 |---|---|---|

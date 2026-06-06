@@ -83,32 +83,15 @@ After the deploy completes, browse to `https://idp.<yourdomain>/`. You should se
 
 ## 4. Enable SCIM on the simulator
 
-By default the simulator only does SAML. SCIM is opt-in.
+**SCIM is enabled by default.** You can turn it off or back on anytime from the admin dashboard — the **SCIM Provisioning** card has an Enable/Disable button, and the change takes effect immediately (no restart, since the routes are always registered and gated by a runtime flag on the data volume).
 
-### 4.1 The clean path
+### 4.1 Forcing SCIM off (optional)
 
-In Dokploy → **Environment** tab → add this line and **Save**:
+To keep SCIM **off** at the environment level — overriding the portal toggle — set this in the Dokploy **Environment** tab and **Redeploy**:
 
 ```
-ENABLE_SCIM=true
+ENABLE_SCIM=false
 ```
-
-Then **Redeploy** (or **Restart**).
-
-![Dokploy Environment tab with ENABLE_SCIM=true](guide/images/02-dokploy-env-tab.png)
-
-### 4.2 The fallback (if your Dokploy doesn't propagate env vars)
-
-Some Dokploy versions don't pass Environment-tab values through docker-compose's variable substitution context. If after redeploy you still see `SCIM disabled` in the logs, use this fallback:
-
-1. Open the container terminal in Dokploy (Docker sidebar → your container → Terminal)
-2. Run:
-   ```bash
-   mkdir -p /app/data && touch /app/data/.enable-scim
-   ```
-3. Restart the container
-
-The simulator checks for this marker file at boot and turns SCIM on. The file lives on the persisted `saml_idp_data` volume so it survives future redeploys.
 
 ### 4.3 Read the bootstrap token
 

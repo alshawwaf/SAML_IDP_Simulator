@@ -66,7 +66,7 @@ def init_auto_sync(app):
 
     @app.after_request
     def _flush(response):
-        if not config_manager.SCIM_PUSH_ON_USER_CHANGE:
+        if not config_manager.SCIM_PUSH_ON_USER_CHANGE or not config_manager.scim_enabled():
             _clear_pending()
             return response
 

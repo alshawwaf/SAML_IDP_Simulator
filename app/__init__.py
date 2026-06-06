@@ -216,6 +216,31 @@ def seed_default_data():
             logger.info("Default service providers already present; skipping seed.")
 
 
+def ensure_builtin_test_sp():
+    """Make sure the built-in loopback test SP exists — even on databases that
+    were seeded before it was added — so /saml-test always works. Idempotent."""
+    TEST_ENTITY = "urn:cp-idp-simulator:saml-test"
+    if ServiceProvider.query.filter_by(entity_id=TEST_ENTITY).first():
+        return
+    db.session.add(ServiceProvider(
+        name="Built-in SAML Test",
+        entity_id=TEST_ENTITY,
+        acs_url="/saml-test/acs",
+        attr_map=[
+            {"claim": "email", "value": "email"},
+            {"claim": "firstName", "value": "first_name"},
+            {"claim": "lastName", "value": "last_name"},
+            {"claim": "groups", "value": "groups"},
+            {"claim": "userId", "value": "user_id"},
+        ],
+    ))
+    try:
+        db.session.commit()
+        logger.info("Seeded built-in SAML test SP")
+    except IntegrityError:
+        db.session.rollback()
+
+
 def _log_admin_credentials():
     """One-line startup hint about which admin password is active."""
     if config_manager.ADMIN_PASSWORD_HASH_FILE.exists():
@@ -245,6 +270,7 @@ def _init_database():
         db.create_all()
         ensure_schema(db.engine)
         seed_default_data()
+        ensure_builtin_test_sp()
         if config_manager.scim_enabled():
             from app.routes.scim.bootstrap import seed_default_scim_data
             seed_default_scim_data()

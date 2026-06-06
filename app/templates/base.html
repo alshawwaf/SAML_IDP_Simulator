@@ -27,6 +27,7 @@
 
     <div class="navbar-nav ms-auto align-items-center gap-4 d-none d-lg-flex">
       {% if session.get('admin_logged_in') %}
+      <a href="{{ url_for('admin.dashboard') }}" class="nav-link">Dashboard</a>
       <a href="{{ url_for('admin.user_management') }}" class="nav-link">Users</a>
       <a href="{{ url_for('admin.list_sps') }}" class="nav-link">Service Providers</a>
       {% if scim_enabled %}

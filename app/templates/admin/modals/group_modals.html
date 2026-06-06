@@ -1,0 +1,113 @@
+<!-- Add Group Modal -->
+<div class="modal fade" id="addGroupModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark">
+      <form method="POST" action="{{ url_for('admin.add_group') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="bi bi-people me-2"></i>Add New Group</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="add_display_name" class="form-label">Group Name</label>
+              <input type="text" name="display_name" id="add_display_name" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label for="add_description" class="form-label">Description <span class="text-muted">(optional)</span></label>
+              <input type="text" name="description" id="add_description" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Members</label>
+              <input type="text" class="form-control form-control-sm mb-2 member-filter"
+                     data-target="add-member-list" placeholder="Filter users…">
+              <div id="add-member-list" class="border border-secondary rounded p-2" style="max-height: 220px; overflow-y: auto;">
+                {% for u in users %}
+                <div class="form-check member-row">
+                  <input class="form-check-input" type="checkbox" name="member_user_ids"
+                         value="{{ u.id }}" id="add_member_{{ u.id }}">
+                  <label class="form-check-label" for="add_member_{{ u.id }}">
+                    {{ u.username }} <span class="text-muted small">({{ u.email }})</span>
+                  </label>
+                </div>
+                {% else %}
+                <div class="text-muted small">No users yet — add users first, then assign them here.</div>
+                {% endfor %}
+              </div>
+              <div class="form-text">A Group ID (UUID) is assigned automatically on save.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-success" type="submit">
+            <i class="bi bi-plus-lg me-1"></i>Add Group
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Group Modal -->
+<div class="modal fade" id="editGroupModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark">
+      <form method="POST" action="{{ url_for('admin.update_group') }}" id="editGroupForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="group_pk" id="edit_group_pk">
+
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Group</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="edit_display_name" class="form-label">Group Name</label>
+              <input type="text" name="display_name" id="edit_display_name" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label for="edit_description" class="form-label">Description <span class="text-muted">(optional)</span></label>
+              <input type="text" name="description" id="edit_description" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Group ID</label>
+              <div><code class="small text-info" id="edit_group_id_display"></code></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Members</label>
+              <input type="text" class="form-control form-control-sm mb-2 member-filter"
+                     data-target="edit-member-list" placeholder="Filter users…">
+              <div id="edit-member-list" class="border border-secondary rounded p-2" style="max-height: 220px; overflow-y: auto;">
+                {% for u in users %}
+                <div class="form-check member-row">
+                  <input class="form-check-input edit-member-check" type="checkbox" name="member_user_ids"
+                         value="{{ u.id }}" id="edit_member_{{ u.id }}">
+                  <label class="form-check-label" for="edit_member_{{ u.id }}">
+                    {{ u.username }} <span class="text-muted small">({{ u.email }})</span>
+                  </label>
+                </div>
+                {% else %}
+                <div class="text-muted small">No users yet.</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-success" type="submit">
+            <i class="bi bi-save me-1"></i>Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

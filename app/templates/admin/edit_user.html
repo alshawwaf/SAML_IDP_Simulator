@@ -50,9 +50,24 @@
                     </div>
 
                     <div class="col-md-12">
-                        <label for="groups" class="form-label">Groups</label>
-                        <input type="text" name="groups" class="form-control" value="{{ user.groups|join(', ') if user.groups else '' }}">
-                        <small class="text-muted">Comma-separated (e.g. saml_users, admin)</small>
+                        <label class="form-label">Group Memberships</label>
+                        {% if all_groups %}
+                        <div class="border border-secondary rounded p-2" style="max-height: 240px; overflow-y: auto;">
+                            {% for g in all_groups %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="group_pks" value="{{ g.id }}"
+                                       id="group_{{ g.id }}" {{ 'checked' if g.id in member_group_pks else '' }}>
+                                <label class="form-check-label" for="group_{{ g.id }}">
+                                    {{ g.display_name }}
+                                    {% if g.description %}<span class="text-muted small">— {{ g.description }}</span>{% endif %}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">Membership drives the SAML group claim. Manage groups under <a href="{{ url_for('admin.group_management') }}">Groups</a>.</small>
+                        {% else %}
+                        <div class="text-muted small">No groups yet — create one under <a href="{{ url_for('admin.group_management') }}">Groups</a> first.</div>
+                        {% endif %}
                     </div>
                 </div>
 

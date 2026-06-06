@@ -104,7 +104,9 @@ def seed_default_data():
                 {"claim": "email", "value": "email"},
                 {"claim": "firstName", "value": "first_name"},
                 {"claim": "lastName", "value": "last_name"},
-                {"claim": "groups", "value": "groups"},
+                # Demonstrate BOTH group claim styles: readable names + Entra-style UUIDs.
+                {"claim": "groups", "value": "group_names"},
+                {"claim": "groupIds", "value": "group_ids"},
                 {"claim": "userId", "value": "user_id"},
             ],
         },
@@ -116,7 +118,9 @@ def seed_default_data():
             "acs_url": "https://10.1.1.100/cpmws/saml/acs/sso",
             "attr_map": [
                 {"claim": "username", "value": "username"},
-                {"claim": "groups", "value": "groups"},
+                # Group claim carries readable display names so SmartConsole access
+                # roles can match on group (switch to group_ids for Entra-style UUIDs).
+                {"claim": "groups", "value": "group_names"},
             ],
         },
         {
@@ -130,7 +134,7 @@ def seed_default_data():
                 {"claim": "identity/claims/givenname", "value": "first_name"},
                 {"claim": "identity/claims/name", "value": "last_name"},
                 {"claim": "identity/claims/emailaddress", "value": "email"},
-                {"claim": "groups", "value": "groups"},
+                {"claim": "groups", "value": "group_names"},
                 {"claim": "urn:mace:dir:attribute-def:userId", "value": "user_id"},
             ],
         },
@@ -156,7 +160,7 @@ def seed_default_data():
             "acs_url": "https://10.1.1.111/saml-vpn/spPortal/ACS/Login/acb09bcb-f847-448e-a38b-a92e466f9db4",
             "attr_map": [
                 {"claim": "username", "value": "email"},
-                {"claim": "group attr", "value": "groups"},
+                {"claim": "group attr", "value": "group_names"},
             ],
         },
         {
@@ -170,7 +174,7 @@ def seed_default_data():
                 {"claim": "identity/claims/givenname", "value": "first_name"},
                 {"claim": "identity/claims/name", "value": "last_name"},
                 {"claim": "identity/claims/emailaddress", "value": "email"},
-                {"claim": "groups", "value": "groups"},
+                {"claim": "groups", "value": "group_names"},
                 {"claim": "urn:mace:dir:attribute-def:userId", "value": "user_id"},
             ],
         },
@@ -230,7 +234,8 @@ def ensure_builtin_test_sp():
             {"claim": "email", "value": "email"},
             {"claim": "firstName", "value": "first_name"},
             {"claim": "lastName", "value": "last_name"},
-            {"claim": "groups", "value": "groups"},
+            {"claim": "groups", "value": "group_names"},
+            {"claim": "groupIds", "value": "group_ids"},
             {"claim": "userId", "value": "user_id"},
         ],
     ))
@@ -239,6 +244,85 @@ def ensure_builtin_test_sp():
         logger.info("Seeded built-in SAML test SP")
     except IntegrityError:
         db.session.rollback()
+
+
+def migrate_legacy_groups_to_entities():
+    """One-time, idempotent migration from the legacy free-text User.groups list
+    to first-class Group entities.
+
+    Two steps:
+      1. Materialize: for every label in each user's (now dormant) `groups` list,
+         upsert a ScimGroup by display_name and ensure a ScimGroupMember link.
+         Existing group assignments survive as real groups with stable UUIDs.
+      2. Repoint: rewrite every Service Provider attribute-map entry whose source
+         is the dormant `groups` column to the membership-derived `group_names`,
+         so the same SAML claim now carries real group names.
+
+    Guarded by a marker file on the data volume so it runs exactly once. After it
+    runs, real groups are authoritative and the dormant column is ignored forever
+    — re-running would resurrect memberships an admin later removed. Runs inside
+    the _init_database() file lock, so it's safe across gunicorn workers. Failures
+    are logged and leave the marker absent so the next boot retries; they never
+    crash startup (the SAML flow must come up regardless).
+    """
+    from app.utils.models_scim import ScimGroup, ScimGroupMember
+
+    marker = PERSIST_DIR / ".groups-migrated"
+    if marker.exists():
+        return
+
+    try:
+        # 1. Labels -> ScimGroup + membership.
+        groups_by_name = {g.display_name: g for g in ScimGroup.query.all()}
+        created_groups = created_members = 0
+        for user in User.query.all():
+            for raw in (user.groups or []):
+                label = (raw or "").strip()
+                if not label:
+                    continue
+                group = groups_by_name.get(label)
+                if group is None:
+                    group = ScimGroup(display_name=label)
+                    db.session.add(group)
+                    db.session.flush()  # populate group.id
+                    groups_by_name[label] = group
+                    created_groups += 1
+                if ScimGroupMember.query.filter_by(group_pk=group.id, user_id=user.id).first() is None:
+                    db.session.add(ScimGroupMember(group_pk=group.id, user_id=user.id))
+                    created_members += 1
+
+        # 2. Repoint SP attribute maps: "groups" -> "group_names".
+        repointed = 0
+        for sp in ServiceProvider.query.all():
+            if not sp.attr_map:
+                continue
+            new_map, changed = [], False
+            for m in sp.attr_map:
+                if isinstance(m, dict) and m.get("value") == "groups":
+                    m = {**m, "value": "group_names"}
+                    changed = True
+                new_map.append(m)
+            if changed:
+                sp.attr_map = new_map
+                repointed += 1
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logger.exception("Legacy-groups migration failed; will retry on next boot.")
+        return
+
+    try:
+        marker.write_text("Legacy User.groups materialized into ScimGroup entities.\n")
+    except OSError as e:
+        logger.warning("Could not write groups-migration marker %s: %s", marker, e)
+
+    if created_groups or created_members or repointed:
+        logger.info(
+            "Legacy-groups migration: materialized %d group(s), %d membership(s); "
+            "repointed %d Service Provider attribute map(s) to group_names.",
+            created_groups, created_members, repointed,
+        )
 
 
 def _log_admin_credentials():
@@ -271,6 +355,7 @@ def _init_database():
         ensure_schema(db.engine)
         seed_default_data()
         ensure_builtin_test_sp()
+        migrate_legacy_groups_to_entities()
         if config_manager.scim_enabled():
             from app.routes.scim.bootstrap import seed_default_scim_data
             seed_default_scim_data()

@@ -15,7 +15,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 document.getElementById("edit_email").value = user.email || '';
                 document.getElementById("edit_first_name").value = user.first_name || '';
                 document.getElementById("edit_last_name").value = user.last_name || '';
-                document.getElementById("edit_groups").value = user.groups || '';
+
+                // Group memberships -> check the matching boxes (replaces the old
+                // free-text groups field). user.group_pks is a list of ScimGroup ids.
+                const memberOf = new Set(user.group_pks || []);
+                document.querySelectorAll(".edit-user-group-check").forEach(cb => {
+                    cb.checked = memberOf.has(parseInt(cb.value, 10));
+                });
             } catch (error) {
                 console.error('Error loading user:', error);
                 alert("Error loading user data");

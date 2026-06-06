@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Group Management{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-gradient mb-0">
+            <i class="bi bi-diagram-3-fill me-2"></i>Group Management
+        </h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGroupModal">
+            <i class="bi bi-plus-lg me-1"></i>Add Group
+        </button>
+    </div>
+
+    <p class="text-muted small mb-4">
+        Groups are first-class directory objects — each has a stable <strong>Group ID</strong>
+        (like an Entra <code>objectId</code> / Okta group id). Add members here, then map an SP's
+        group claim to <code>group_names</code> or <code>group_ids</code> to grant the whole group
+        access (e.g. SmartConsole). These are the same groups SCIM provisions to/from Harmony.
+    </p>
+
+    <div class="card glass">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th class="px-3 py-3" style="width: 22%;">
+                                <i class="bi bi-collection me-2 text-primary"></i>Group
+                            </th>
+                            <th class="px-3 py-3" style="width: 26%;">
+                                <i class="bi bi-fingerprint me-2 text-primary"></i>Group ID
+                            </th>
+                            <th class="px-3 py-3" style="width: 30%;">
+                                <i class="bi bi-people me-2 text-primary"></i>Members
+                            </th>
+                            <th class="px-3 py-3" style="width: 10%;">
+                                <i class="bi bi-cloud me-2 text-primary"></i>Source
+                            </th>
+                            <th class="px-3 py-3 text-end" style="width: 12%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in groups %}
+                        <tr>
+                            <td class="px-3 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-primary bg-opacity-20 p-2 me-2 flex-shrink-0">
+                                        <i class="bi bi-people-fill text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-medium text-white d-block">{{ group.display_name }}</span>
+                                        {% if group.description %}
+                                        <span class="text-muted small">{{ group.description }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-3">
+                                <code class="small text-info">{{ group.group_id }}</code>
+                            </td>
+                            <td class="px-3 py-3">
+                                {% if group.members %}
+                                    <span class="badge bg-primary bg-opacity-25 text-info me-1">{{ group.members|length }}</span>
+                                    {% for m in group.members %}
+                                    <span class="badge bg-secondary me-1 mb-1">{{ m.user.username }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                <span class="text-muted">No members</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-3">
+                                {% if group.external_id %}
+                                <span class="badge bg-info bg-opacity-25 text-info" title="externalId {{ group.external_id }}">
+                                    <i class="bi bi-arrow-down-circle me-1"></i>SCIM
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-25 text-light">Local</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-3 text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary edit-group-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editGroupModal"
+                                            data-group-pk="{{ group.id }}"
+                                            title="Edit Group">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="{{ url_for('admin.delete_group', group_pk=group.id) }}"
+                                       class="btn btn-outline-danger"
+                                       onclick="return confirm('Delete this group? Members are detached; the users themselves are not deleted.')"
+                                       title="Delete Group">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="bi bi-diagram-3 fs-1 d-block mb-3 opacity-50"></i>
+                                    <p class="mb-2">No groups yet</p>
+                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addGroupModal">
+                                        <i class="bi bi-plus-lg me-1"></i>Add your first group
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Stats Card -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card glass border-0">
+                <div class="card-body text-center">
+                    <div class="fs-2 text-primary fw-bold">{{ groups|length }}</div>
+                    <div class="text-muted small">Total Groups</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "admin/modals/group_modals.html" %}
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='js/group_modals.js') }}"></script>
+{% endblock %}

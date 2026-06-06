@@ -26,9 +26,21 @@
               <input type="text" class="form-control" id="edit_last_name" name="last_name">
             </div>
             <div class="col-12">
-              <label for="edit_groups" class="form-label">Groups</label>
-              <input type="text" class="form-control" id="edit_groups" name="groups" placeholder="Comma-separated (e.g., admins, users)">
-              <div class="form-text">Enter group names separated by commas</div>
+              <label class="form-label">Group Memberships</label>
+              {% if all_groups %}
+              <div class="border border-secondary rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                {% for g in all_groups %}
+                <div class="form-check">
+                  <input class="form-check-input edit-user-group-check" type="checkbox" name="group_pks"
+                         value="{{ g.id }}" id="edit_user_group_{{ g.id }}">
+                  <label class="form-check-label" for="edit_user_group_{{ g.id }}">{{ g.display_name }}</label>
+                </div>
+                {% endfor %}
+              </div>
+              <div class="form-text">Membership drives the SAML group claim. Manage groups under <em>Groups</em>.</div>
+              {% else %}
+              <div class="text-muted small">No groups yet — create one under <strong>Groups</strong> first.</div>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -112,12 +124,24 @@
               <input type="text" name="last_name" id="add_last_name" class="form-control">
             </div>
             <div class="col-md-6">
-              <label for="add_groups" class="form-label">Groups</label>
-              <input type="text" name="groups" id="add_groups" class="form-control" placeholder="Comma-separated (e.g., admins, users)">
-            </div>
-            <div class="col-md-6">
               <label for="add_password" class="form-label">Password</label>
               <input type="password" name="password" id="add_password" class="form-control" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Group Memberships <span class="text-muted">(optional)</span></label>
+              {% if all_groups %}
+              <div class="border border-secondary rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                {% for g in all_groups %}
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="group_pks"
+                         value="{{ g.id }}" id="add_user_group_{{ g.id }}">
+                  <label class="form-check-label" for="add_user_group_{{ g.id }}">{{ g.display_name }}</label>
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="text-muted small">No groups yet — create one under <strong>Groups</strong> first.</div>
+              {% endif %}
             </div>
           </div>
         </div>

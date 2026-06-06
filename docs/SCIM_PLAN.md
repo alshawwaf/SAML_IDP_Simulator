@@ -1,8 +1,10 @@
 # SCIM 2.0 Extension — Implementation Plan
 
 **Status:** Phases 0–3 + 5 shipped. 81% scim2-tester compliance.
-**Last updated:** 2026-05-29
+**Last updated:** 2026-06-06
 **Goal:** Add SCIM 2.0 provisioning support to interoperate with Check Point Harmony SASE, without touching the existing SAML implementation.
+
+> **Update (2026-06-06): Groups are now first-class.** `ScimGroup`/`ScimGroupMember` are no longer SCIM-only — they're the IdP's single Group entity, managed from a new **Groups** admin page and wired into SAML via the read-only `User.group_names` / `User.group_ids` claim sources. The legacy free-text `User.groups` list is retired (dormant column + one-time materialize/repoint migration). A `description` column was added to `ScimGroup`. SCIM Group endpoints/mappers are unchanged.
 
 ---
 
@@ -163,7 +165,7 @@ class ScimGroupMember(db.Model):
     __table_args__ = (db.UniqueConstraint('group_id', 'user_id'),)
 ```
 
-**Why separate `ScimGroup` from `User.groups`:** the existing `groups` JSON list stores string labels for SAML attribute claims. SCIM groups are first-class resources with their own IDs, members, and PATCH semantics. Mixing them would either break SAML or warp SCIM.
+**Why `ScimGroup` is the Group entity (updated 2026-06-06):** originally `ScimGroup` was kept separate from the free-text `User.groups` JSON list so SCIM PATCH semantics stayed clean. That free-text list is now retired — `ScimGroup` (first-class resource: own UUID, members, PATCH semantics) is the single source of truth, and SAML group claims derive from membership via `User.group_names` / `User.group_ids`. One concept, used by both SAML and SCIM.
 
 ---
 

@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from app.utils.models import db, User, ServiceProvider
+from app.utils.models_scim import ScimGroup, ScimGroupMember
 from app.utils.config_manager import config_manager
 from app.utils.extensions import limiter
 from app.utils.activity import record
@@ -18,12 +19,44 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
+def _ids_from_form(field):
+    """Parse a repeated integer form field (e.g. checkbox group) into a list of ints."""
+    return [int(x) for x in request.form.getlist(field) if x.isdigit()]
+
+
+def _reconcile_group_members(group, desired_user_ids):
+    """Make `group`'s membership exactly `desired_user_ids` (User.id values).
+    Adds missing links, removes the rest. Caller commits."""
+    desired = set(desired_user_ids)
+    current = {m.user_id: m for m in ScimGroupMember.query.filter_by(group_pk=group.id).all()}
+    for uid in desired - set(current):
+        if User.query.get(uid):
+            db.session.add(ScimGroupMember(group_pk=group.id, user_id=uid))
+    for uid, member in current.items():
+        if uid not in desired:
+            db.session.delete(member)
+
+
+def _reconcile_user_groups(user, desired_group_pks):
+    """Make `user`'s memberships exactly `desired_group_pks` (ScimGroup.id values).
+    The user-side mirror of _reconcile_group_members. Caller commits."""
+    desired = set(desired_group_pks)
+    current = {m.group_pk: m for m in ScimGroupMember.query.filter_by(user_id=user.id).all()}
+    for gpk in desired - set(current):
+        if ScimGroup.query.get(gpk):
+            db.session.add(ScimGroupMember(group_pk=gpk, user_id=user.id))
+    for gpk, member in current.items():
+        if gpk not in desired:
+            db.session.delete(member)
+
 @admin_bp.route('/')
 @admin_required
 def dashboard():
     return render_template(
         'admin/dashboard.html',
         user_count=User.query.count(),
+        group_count=ScimGroup.query.count(),
         sp_count=ServiceProvider.query.count(),
         config=config_manager.get_all_config(),
     )
@@ -47,7 +80,10 @@ def idp_config():
 def user_management():
     users = User.query.all()
     user_fields = User.get_editable_user_fields()
-    return render_template('admin/user_management.html', users=users, user_fields=user_fields)
+    # Groups available to assign as membership in the add/edit-user modals.
+    all_groups = ScimGroup.query.order_by(ScimGroup.display_name).all()
+    return render_template('admin/user_management.html', users=users,
+                           user_fields=user_fields, all_groups=all_groups)
 
 @admin_bp.route('/users/add', methods=['POST'])
 @admin_required
@@ -57,30 +93,30 @@ def add_user():
     password = request.form.get('password')
     first_name = request.form.get('first_name', '')
     last_name = request.form.get('last_name', '')
-    groups_str = request.form.get('groups', '')
-    
-    # Parse groups from comma-separated string
-    groups = [g.strip() for g in groups_str.split(',') if g.strip()] if groups_str else ['saml_users']
-    
+
     if User.query.filter_by(username=username).first():
         flash('Username already exists', 'error')
         return redirect(url_for('admin.user_management'))
-    
+
     if User.query.filter_by(email=email).first():
         flash('Email already exists', 'error')
         return redirect(url_for('admin.user_management'))
-    
+
     user = User(
         username=username,
         email=email,
         first_name=first_name,
         last_name=last_name,
-        groups=groups
     )
     user.set_password(password)
     db.session.add(user)
+    db.session.flush()  # populate user.id for membership links
+    # Group membership comes from the multi-select (first-class groups), not the
+    # retired free-text field.
+    _reconcile_user_groups(user, _ids_from_form('group_pks'))
     db.session.commit()
-    record('user', 'Created user', target=username, detail={'email': email, 'groups': groups})
+    record('user', 'Created user', target=username,
+           detail={'email': email, 'groups': user.group_names})
     flash('User added successfully', 'success')
     return redirect(url_for('admin.user_management'))
 
@@ -93,16 +129,17 @@ def edit_user(username):
         user.email = request.form.get('email', user.email)
         user.first_name = request.form.get('first_name', user.first_name)
         user.last_name = request.form.get('last_name', user.last_name)
-        groups_str = request.form.get('groups', '')
-        if groups_str:
-            user.groups = [g.strip() for g in groups_str.split(',') if g.strip()]
         if request.form.get('password'):
             user.set_password(request.form.get('password'))
+        _reconcile_user_groups(user, _ids_from_form('group_pks'))
         db.session.commit()
         record('user', 'Updated user', target=username)
         flash('User updated', 'success')
         return redirect(url_for('admin.user_management'))
-    return render_template('admin/edit_user.html', user=user, user_fields=user_fields)
+    all_groups = ScimGroup.query.order_by(ScimGroup.display_name).all()
+    member_group_pks = {m.group_pk for m in user.scim_memberships}
+    return render_template('admin/edit_user.html', user=user, user_fields=user_fields,
+                           all_groups=all_groups, member_group_pks=member_group_pks)
 
 @admin_bp.route('/users/<username>/delete')
 @admin_required
@@ -124,7 +161,8 @@ def get_user_api(username):
         'email': user.email,
         'first_name': user.first_name or '',
         'last_name': user.last_name or '',
-        'groups': ','.join(user.groups) if user.groups else '',
+        # Group memberships drive the edit modal's checkbox state.
+        'group_pks': [m.group_pk for m in user.scim_memberships],
         'is_admin': user.is_admin
     })
 
@@ -136,14 +174,12 @@ def update_user():
     user = User.query.filter_by(username=username).first()
     if not user:
         return jsonify({'success': False, 'error': 'User not found'}), 404
-    
+
     user.email = request.form.get('email', user.email)
     user.first_name = request.form.get('first_name', user.first_name)
     user.last_name = request.form.get('last_name', user.last_name)
-    groups_str = request.form.get('groups', '')
-    if groups_str:
-        user.groups = [g.strip() for g in groups_str.split(',') if g.strip()]
-    
+    _reconcile_user_groups(user, _ids_from_form('group_pks'))
+
     db.session.commit()
     record('user', 'Updated user', target=username)
     return jsonify({'success': True})
@@ -174,6 +210,91 @@ def reset_password():
     record('user', 'Reset password', target=username)
     flash(f'Password reset successfully for {username}', 'success')
     return redirect(url_for('admin.user_management'))
+
+# ==================== GROUP MANAGEMENT ====================
+# Groups are first-class directory objects (app.utils.models_scim.ScimGroup):
+# each has a stable group_id UUID (Entra objectId / Okta id equivalent) and a
+# member list. Membership feeds the SAML group_names/group_ids claim sources, so
+# a whole group can be granted access at an SP (e.g. SmartConsole). These are the
+# same entities SCIM provisions in/out, so admin-created groups push to Harmony
+# and SCIM-pushed groups appear here. Always available (not behind the SCIM gate).
+
+@admin_bp.route('/groups')
+@admin_required
+def group_management():
+    groups = ScimGroup.query.order_by(ScimGroup.display_name).all()
+    users = User.query.order_by(User.username).all()
+    return render_template('admin/group_management.html', groups=groups, users=users)
+
+@admin_bp.route('/groups/add', methods=['POST'])
+@admin_required
+def add_group():
+    display_name = (request.form.get('display_name') or '').strip()
+    description = (request.form.get('description') or '').strip() or None
+    if not display_name:
+        flash('Group name is required', 'error')
+        return redirect(url_for('admin.group_management'))
+    if ScimGroup.query.filter_by(display_name=display_name).first():
+        flash('A group with that name already exists', 'error')
+        return redirect(url_for('admin.group_management'))
+
+    group = ScimGroup(display_name=display_name, description=description)
+    db.session.add(group)
+    db.session.flush()  # populate group.id for membership links
+    _reconcile_group_members(group, _ids_from_form('member_user_ids'))
+    db.session.commit()
+    record('group', 'Created group', target=display_name,
+           detail={'group_id': group.group_id, 'members': len(group.members)})
+    flash(f'Group "{display_name}" created', 'success')
+    return redirect(url_for('admin.group_management'))
+
+@admin_bp.route('/api/groups/<int:group_pk>', methods=['GET'])
+@admin_required
+def get_group_api(group_pk):
+    """Group data for the edit modal."""
+    group = ScimGroup.query.get_or_404(group_pk)
+    return jsonify({
+        'id': group.id,
+        'group_id': group.group_id,
+        'display_name': group.display_name,
+        'description': group.description or '',
+        'external_id': group.external_id or '',
+        'member_user_ids': [m.user_id for m in group.members],
+    })
+
+@admin_bp.route('/update_group', methods=['POST'])
+@admin_required
+def update_group():
+    """Update a group from the edit modal (rename, description, membership)."""
+    group_pk = request.form.get('group_pk', '')
+    group = ScimGroup.query.get(int(group_pk)) if group_pk.isdigit() else None
+    if not group:
+        return jsonify({'success': False, 'error': 'Group not found'}), 404
+
+    new_name = (request.form.get('display_name') or '').strip()
+    if not new_name:
+        return jsonify({'success': False, 'error': 'Group name is required'}), 400
+    if ScimGroup.query.filter(ScimGroup.display_name == new_name, ScimGroup.id != group.id).first():
+        return jsonify({'success': False, 'error': 'A group with that name already exists'}), 409
+
+    group.display_name = new_name
+    group.description = (request.form.get('description') or '').strip() or None
+    _reconcile_group_members(group, _ids_from_form('member_user_ids'))
+    db.session.commit()
+    record('group', 'Updated group', target=new_name)
+    return jsonify({'success': True})
+
+@admin_bp.route('/groups/<int:group_pk>/delete')
+@admin_required
+def delete_group(group_pk):
+    group = ScimGroup.query.get_or_404(group_pk)
+    name = group.display_name
+    # Cascade drops ScimGroupMember rows; the SCIM push-log FK is ondelete=SET NULL.
+    db.session.delete(group)
+    db.session.commit()
+    record('group', 'Deleted group', target=name)
+    flash(f'Group "{name}" deleted', 'success')
+    return redirect(url_for('admin.group_management'))
 
 # ==================== SERVICE PROVIDER MANAGEMENT ====================
 
@@ -364,7 +485,7 @@ def activity_log():
     return render_template(
         'admin/activity_log.html',
         entries=entries, total=total, page=page, per_page=per_page,
-        categories=['auth', 'user', 'service_provider', 'scim', 'saml', 'settings'],
+        categories=['auth', 'user', 'group', 'service_provider', 'scim', 'saml', 'settings'],
         filter_category=category, filter_status=status,
     )
 

@@ -22,7 +22,8 @@ A complete walkthrough for configuring the simulator with **Check Point SASE** (
 8. [Optional: auto-sync on admin changes](#8-optional-auto-sync-on-admin-changes)
 9. [Optional: receive SCIM pushes (inbound mode)](#9-optional-receive-scim-pushes-inbound-mode)
 10. [Troubleshooting](#10-troubleshooting)
-11. [Appendix: defaults and references](#11-appendix-defaults-and-references)
+11. [Groups and group-based access (SmartConsole)](#11-groups-and-group-based-access-smartconsole)
+12. [Appendix: defaults and references](#12-appendix-defaults-and-references)
 
 ---
 
@@ -344,7 +345,38 @@ Check Point SASE uses email-as-userName. The simulator already sends `userName =
 
 ---
 
-## 11. Appendix: defaults and references
+## 11. Groups and group-based access (SmartConsole)
+
+Groups are **first-class directory objects**, modelled exactly like an Entra security group or an Okta group: each has a unique **display name** and a stable **Group ID** (a UUID — the equivalent of Entra's `objectId` / Okta's group id), plus a member list. They are the same entities SCIM provisions to/from Check Point SASE, so a group you create in the admin portal is also pushable to Harmony, and a group an IdP pushes in over SCIM shows up here.
+
+> Earlier builds stored groups as a free-text list typed on each user. On first boot after this upgrade, those labels are migrated automatically into real groups (with UUIDs and membership), and every Service Provider's group claim is repointed to the new source — no manual reconfiguration needed.
+
+### 11.1 Create and manage groups
+
+1. Sign in to `/admin`, open **Groups** in the navbar.
+2. **Add Group** → give it a name (e.g. `Security Admins`) and an optional description. A Group ID (UUID) is assigned on save.
+3. Edit a group to assign **members** (a checkbox list of users), rename it, or change its description. You can also assign group membership from the **Users** screen when editing a user.
+
+### 11.2 Grant a whole group access at a Service Provider
+
+A user's group membership is exposed to SAML through two claim **sources** — pick per SP:
+
+| Claim source | Emits | Mirrors |
+|---|---|---|
+| `group_names` | the member groups' display names (e.g. `Security Admins`) | Okta group claim |
+| `group_ids` | the member groups' UUIDs | Entra `groups` (object IDs) |
+
+To grant a group access to **SmartConsole**:
+
+1. Open **Service Providers → SmartConsole**. Its `groups` claim is mapped to `group_names` by default (switch the source to `group_ids` if you prefer Entra-style UUIDs).
+2. In SmartConsole, build an **access role / permission** that matches the group value the assertion carries (the display name, or the UUID if you chose `group_ids`).
+3. Any user who is a **member** of that group now authenticates with the group in their assertion, so the whole group is authorized — you no longer grant access user-by-user.
+
+Verify end-to-end with the built-in test SP: visit `/saml-test`, sign in as a seeded user, and confirm the decoded, signature-verified assertion carries both a `groups` claim (names) and a `groupIds` claim (UUIDs).
+
+---
+
+## 12. Appendix: defaults and references
 
 ### Default admin credentials
 
@@ -358,18 +390,22 @@ Override via env vars `ADMIN_USERNAME` / `ADMIN_PASSWORD` in Dokploy.
 
 ### Default seeded users (for demos)
 
-| Username | Email | Password |
-|---|---|---|
-| `demo.user` | `demo.user@cpdemo.ca` | `Cpwins!1@2026` |
-| `john.smith` | `john.smith@cpdemo.ca` | `Cpwins!1@2026` |
-| `jane.doe` | `jane.doe@cpdemo.ca` | `Cpwins!1@2026` |
+| Username | Email | Password | Group memberships |
+|---|---|---|---|
+| `demo.user` | `demo.user@cpdemo.ca` | `Cpwins!1@2026` | `saml_users`, `vpn_users` |
+| `john.smith` | `john.smith@cpdemo.ca` | `Cpwins!1@2026` | `saml_users`, `admins` |
+| `jane.doe` | `jane.doe@cpdemo.ca` | `Cpwins!1@2026` | `saml_users`, `security_admins` |
+
+### Default seeded groups
+
+Materialized on first boot from the seeded users' memberships, each with a generated Group ID (UUID): `saml_users`, `vpn_users`, `admins`, `security_admins`. Manage them at `/admin/groups`. See [§11](#11-groups-and-group-based-access-smartconsole).
 
 ### Default seeded Service Providers
 
 Five validated Check Point integrations (seeded with reference-lab example values — edit to your environment) plus a built-in self-test:
 
-- **Built-in SAML Test** — loopback SP; visit `/saml-test` to verify SSO end-to-end with no external product
-- **SmartConsole** — administrator login SAML
+- **Built-in SAML Test** — loopback SP; visit `/saml-test` to verify SSO end-to-end with no external product (emits both a `groups` claim = group names and a `groupIds` claim = group UUIDs)
+- **SmartConsole** — administrator login SAML; `groups` claim = group display names (`group_names`), so a SmartConsole access role can authorize a whole group — see [§11](#11-groups-and-group-based-access-smartconsole)
 - **InfinityPortal** — Generic SAML Server
 - **IDA-CaptivePortalSAML** — Identity Awareness captive portal
 - **RemoteAccessVPN** — gateway `saml-vpn` portal

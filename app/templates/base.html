@@ -28,7 +28,19 @@
     <div class="navbar-nav ms-auto align-items-center gap-4 d-none d-lg-flex">
       {% if session.get('admin_logged_in') %}
       <a href="{{ url_for('admin.dashboard') }}" class="nav-link">Dashboard</a>
-      <a href="{{ url_for('admin.user_management') }}" class="nav-link">Users</a>
+      <div class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-people me-1"></i>Directory
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+          <li><a class="dropdown-item text-white" href="{{ url_for('admin.user_management') }}">
+            <i class="bi bi-person me-2"></i>Users
+          </a></li>
+          <li><a class="dropdown-item text-white" href="{{ url_for('admin.group_management') }}">
+            <i class="bi bi-diagram-3 me-2"></i>Groups
+          </a></li>
+        </ul>
+      </div>
       <a href="{{ url_for('admin.list_sps') }}" class="nav-link">Service Providers</a>
       {% if scim_enabled %}
       <div class="nav-item dropdown">

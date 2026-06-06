@@ -62,12 +62,22 @@ class ScimInboundToken(db.Model):
 
 
 class ScimGroup(db.Model):
-    """SCIM Group resource. Distinct from the User.groups JSON list (which is for SAML claims)."""
+    """The IdP's first-class Group entity — the single source of truth for groups.
+
+    A group here is modelled exactly like an Entra security group / Okta group: a
+    stable UUID (`group_id`, the Entra `objectId` / Okta id equivalent), a unique
+    `display_name`, an optional upstream `external_id`, and a many-to-many member
+    list. It is managed from the admin portal (Groups), provisioned in/out over
+    SCIM, AND feeds the SAML assertion via the read-only `User.group_names` /
+    `User.group_ids` properties — so a whole group can be granted access at an SP
+    (e.g. SmartConsole). This replaced the old free-text `User.groups` JSON list.
+    """
     __tablename__ = "scim_group"
 
     id = db.Column(db.Integer, primary_key=True)
     group_id = db.Column(db.String(120), nullable=False, unique=True, default=lambda: str(uuid.uuid4()))
     display_name = db.Column(db.String(150), nullable=False, unique=True)
+    description = db.Column(db.String(255), nullable=True)  # Entra-style group description (admin metadata)
     external_id = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -83,5 +93,15 @@ class ScimGroupMember(db.Model):
     group_pk = db.Column(db.Integer, db.ForeignKey("scim_group.id", ondelete="CASCADE"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Back-relationship onto User so `user.scim_memberships` resolves (used by
+    # User.group_names / group_ids and the admin Groups UI). Declared here rather
+    # than in models.py to keep the SAML model import-clean; it registers on the
+    # User class at mapper-config time because app/__init__.py always imports this
+    # module. ORM-level cascade deletes a user's memberships when the user is
+    # deleted (so deleting a user can't orphan membership rows).
+    user = db.relationship(
+        "User", backref=db.backref("scim_memberships", cascade="all, delete-orphan")
+    )
 
     __table_args__ = (db.UniqueConstraint("group_pk", "user_id", name="uq_scim_group_member"),)

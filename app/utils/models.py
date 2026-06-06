@@ -14,6 +14,12 @@ class User(db.Model, UserMixin):
     first_name = db.Column(db.String(80), nullable=False, default='')
     last_name = db.Column(db.String(80), nullable=False, default='')
     user_id = db.Column(db.String(120), nullable=False, unique=True, default=lambda: str(uuid.uuid4()))
+    # DORMANT: the legacy free-text group list. Groups are now first-class
+    # entities (app.utils.models_scim.ScimGroup) and a user's groups come from
+    # membership, surfaced via the group_names/group_ids properties below. This
+    # column is no longer read or written by the app — kept (not dropped) to
+    # avoid a destructive SQLite migration; a one-time startup migration copied
+    # its values into real groups. Safe to drop later via Flask-Migrate.
     groups = db.Column(db.JSON, default=lambda: ["saml_users"])
     is_admin = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True, nullable=False)
@@ -29,6 +35,20 @@ class User(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @property
+    def group_names(self):
+        """Display names of the groups this user belongs to — the readable,
+        Okta-style SAML group claim source. Derived from group membership
+        (ScimGroupMember), not a column. Consumed by auth.py via getattr()."""
+        return [m.group.display_name for m in self.scim_memberships]
+
+    @property
+    def group_ids(self):
+        """Stable UUIDs of the groups this user belongs to — the Entra
+        objectId-style SAML group claim source. Derived from group membership
+        (ScimGroupMember), not a column. Consumed by auth.py via getattr()."""
+        return [m.group.group_id for m in self.scim_memberships]
+
     @staticmethod
     def get_editable_user_fields():
         # Source fields offered in the SAML claim-mapping dropdowns
@@ -37,9 +57,15 @@ class User(db.Model, UserMixin):
         # "userId"/"objectId" claim can map to an immutable identifier, mirroring
         # Entra objectId / Okta id. It is NOT user-editable (the add/edit-user
         # forms use a fixed field set, not this list). `active` stays excluded
-        # (it's writable via SCIM, not a useful SAML claim).
-        exclude = {"id", "password_hash", "created_at", "updated_at", "active"}
+        # (it's writable via SCIM, not a useful SAML claim). The legacy `groups`
+        # column is excluded (dormant) — group claims now come from the
+        # membership-derived group_names/group_ids properties below.
+        exclude = {"id", "password_hash", "created_at", "updated_at", "active", "groups"}
         fields = [c.name for c in User.__table__.columns if c.name not in exclude]
+        # Group claim sources derived from first-class Group membership (not
+        # columns): group_names = member group display names (Okta-style);
+        # group_ids = member group UUIDs (Entra objectId-style). Pick either per SP.
+        fields.extend(["group_names", "group_ids"])
         fields.append("password")
         return fields
 
@@ -92,3 +118,12 @@ def ensure_schema(engine):
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE user ADD COLUMN external_id VARCHAR(255)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_external_id ON user (external_id)"))
+
+    # scim_group.description — added when Groups became first-class admin-managed
+    # entities. create_all() makes it on fresh DBs; this covers DBs that already
+    # had scim_group (e.g. SCIM was used before this feature).
+    if inspector.has_table("scim_group"):
+        scim_group_cols = {c["name"] for c in inspector.get_columns("scim_group")}
+        if "description" not in scim_group_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE scim_group ADD COLUMN description VARCHAR(255)"))

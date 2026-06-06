@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app.utils.models import db, User, ServiceProvider
 from app.utils.config_manager import config_manager
 from app.utils.extensions import limiter
+from app.utils.activity import record
 from werkzeug.security import generate_password_hash
 import json
 
@@ -79,6 +80,7 @@ def add_user():
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
+    record('user', 'Created user', target=username, detail={'email': email, 'groups': groups})
     flash('User added successfully', 'success')
     return redirect(url_for('admin.user_management'))
 
@@ -97,6 +99,7 @@ def edit_user(username):
         if request.form.get('password'):
             user.set_password(request.form.get('password'))
         db.session.commit()
+        record('user', 'Updated user', target=username)
         flash('User updated', 'success')
         return redirect(url_for('admin.user_management'))
     return render_template('admin/edit_user.html', user=user, user_fields=user_fields)
@@ -107,6 +110,7 @@ def delete_user(username):
     user = User.query.filter_by(username=username).first_or_404()
     db.session.delete(user)
     db.session.commit()
+    record('user', 'Deleted user', target=username)
     flash('User deleted', 'success')
     return redirect(url_for('admin.user_management'))
 
@@ -141,6 +145,7 @@ def update_user():
         user.groups = [g.strip() for g in groups_str.split(',') if g.strip()]
     
     db.session.commit()
+    record('user', 'Updated user', target=username)
     return jsonify({'success': True})
 
 @admin_bp.route('/reset_password', methods=['POST'])
@@ -166,6 +171,7 @@ def reset_password():
     
     user.set_password(new_password)
     db.session.commit()
+    record('user', 'Reset password', target=username)
     flash(f'Password reset successfully for {username}', 'success')
     return redirect(url_for('admin.user_management'))
 
@@ -207,6 +213,7 @@ def create_sp():
     )
     db.session.add(sp)
     db.session.commit()
+    record('service_provider', 'Created Service Provider', target=name, detail={'entity_id': entity_id, 'acs_url': acs_url})
     flash('Service Provider added successfully', 'success')
     return redirect(url_for('admin.list_sps'))
 
@@ -231,6 +238,7 @@ def edit_sp(sp_id):
     sp.attr_map = attr_map
     
     db.session.commit()
+    record('service_provider', 'Updated Service Provider', target=sp.name)
     flash('Service Provider updated successfully', 'success')
     return redirect(url_for('admin.list_sps'))
 
@@ -238,8 +246,10 @@ def edit_sp(sp_id):
 @admin_required
 def delete_sp(sp_id):
     sp = ServiceProvider.query.get_or_404(sp_id)
+    sp_name = sp.name
     db.session.delete(sp)
     db.session.commit()
+    record('service_provider', 'Deleted Service Provider', target=sp_name)
     flash('Service Provider deleted successfully', 'success')
     return redirect(url_for('admin.list_sps'))
 
@@ -302,7 +312,9 @@ def login():
         password = request.form.get('password') or ''
         if username == config_manager.ADMIN_USERNAME and verify_admin_password(password):
             session['admin_logged_in'] = True
+            record('auth', 'Admin login', target=username)
             return redirect(url_for('admin.dashboard'))
+        record('auth', 'Failed admin login', target=username, status='error', actor=username or 'unknown')
         flash('Invalid credentials', 'error')
         # Echo the submitted username back so the operator can see exactly what
         # was sent (catches password-manager autofilling the wrong username).
@@ -313,6 +325,7 @@ def login():
 
 @admin_bp.route('/logout')
 def logout():
+    record('auth', 'Admin logout')
     session.pop('admin_logged_in', None)
     flash('Logged out successfully', 'success')
     return redirect(url_for('admin.login'))
@@ -327,8 +340,41 @@ def toggle_scim():
         return redirect(request.referrer or url_for('admin.dashboard'))
     enable = request.form.get('enable') == 'true'
     config_manager.set_scim_enabled(enable)
+    record('scim', f"SCIM provisioning {'enabled' if enable else 'disabled'}", status='info')
     flash(f"SCIM provisioning {'enabled' if enable else 'disabled'}.", 'success')
     return redirect(request.referrer or url_for('admin.dashboard'))
+
+
+@admin_bp.route('/activity')
+@admin_required
+def activity_log():
+    """App-wide audit log — paginated, filterable by category and status."""
+    from app.utils.models import ActivityLog
+    page = max(1, request.args.get('page', 1, type=int))
+    per_page = 50
+    category = request.args.get('category') or None
+    status = request.args.get('status') or None
+    q = ActivityLog.query.order_by(ActivityLog.id.desc())
+    if category:
+        q = q.filter_by(category=category)
+    if status:
+        q = q.filter_by(status=status)
+    total = q.count()
+    entries = q.offset((page - 1) * per_page).limit(per_page).all()
+    return render_template(
+        'admin/activity_log.html',
+        entries=entries, total=total, page=page, per_page=per_page,
+        categories=['auth', 'user', 'service_provider', 'scim', 'saml', 'settings'],
+        filter_category=category, filter_status=status,
+    )
+
+
+@admin_bp.route('/activity/<int:entry_id>')
+@admin_required
+def activity_detail(entry_id):
+    from app.utils.models import ActivityLog
+    entry = ActivityLog.query.get_or_404(entry_id)
+    return render_template('admin/activity_detail.html', entry=entry)
 
 
 @admin_bp.route('/change-admin-password', methods=['POST'])
@@ -342,6 +388,7 @@ def change_admin_password():
 
     if action == 'reset':
         reset_to_default()
+        record('settings', 'Reset admin password to env/default', status='info')
         flash('Admin password reverted to env/default.', 'success')
         return redirect(request.referrer or url_for('admin.dashboard'))
 
@@ -360,6 +407,7 @@ def change_admin_password():
         return redirect(request.referrer or url_for('admin.dashboard'))
 
     set_admin_password(new_pw)
+    record('settings', 'Changed admin password')
     flash('Admin password changed. Use the new password on next login.', 'success')
     return redirect(url_for('admin.settings'))
 

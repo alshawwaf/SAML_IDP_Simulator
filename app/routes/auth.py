@@ -7,6 +7,7 @@ from app.utils.saml import IdPHandler
 from app.utils.user_manager import UserManager
 from app.utils.models import ServiceProvider
 from app.utils.extensions import limiter
+from app.utils.activity import record
 
 auth_bp = Blueprint('auth', __name__)
 saml_handler = IdPHandler()
@@ -91,6 +92,8 @@ def login():
     )
     relay_state = ctx.get("relay_state")
     session.pop('saml_ctx', None)
+    record('saml', 'Issued SAML assertion', target=user.username,
+           detail={'sp': sp_info.get('entity_id'), 'acs': acs_url}, actor=user.username)
 
     return render_template(
         'auth/saml_post.html',

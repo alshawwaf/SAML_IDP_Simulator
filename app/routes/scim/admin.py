@@ -20,6 +20,7 @@ from app.utils.models import db, User
 from app.utils.models_scim import (
     ScimGroup, ScimInboundToken, ScimPushLog, ScimTarget,
 )
+from app.utils.activity import record
 
 
 scim_admin_bp = Blueprint("scim_admin", __name__, url_prefix="/admin/scim")
@@ -96,6 +97,7 @@ def new_target():
         )
         db.session.add(target)
         db.session.commit()
+        record('scim', 'Created SCIM target', target=name, detail={'base_url': base_url.rstrip("/")})
         flash(f"SCIM target {name!r} created.", "success")
         return redirect(url_for("scim_admin.list_targets"))
     return render_template("admin/scim/target_edit.html", target=None)
@@ -119,6 +121,7 @@ def edit_target(target_id):
                 flash(f"Cannot encrypt token: {e}", "error")
                 return redirect(url_for("scim_admin.edit_target", target_id=target.id))
         db.session.commit()
+        record('scim', 'Updated SCIM target', target=target.name)
         flash(f"SCIM target {target.name!r} updated.", "success")
         return redirect(url_for("scim_admin.list_targets"))
     return render_template("admin/scim/target_edit.html", target=target)
@@ -131,6 +134,7 @@ def delete_target(target_id):
     name = target.name
     db.session.delete(target)
     db.session.commit()
+    record('scim', 'Deleted SCIM target', target=name)
     flash(f"SCIM target {name!r} deleted.", "success")
     return redirect(url_for("scim_admin.list_targets"))
 
@@ -235,6 +239,7 @@ def new_inbound_token():
         enabled=True,
     ))
     db.session.commit()
+    record('scim', 'Created inbound token', target=name)
     # Surface the raw token ONCE via session — same flow Check Point SASE itself uses.
     session["_scim_fresh_token"] = raw_token
     session["_scim_fresh_token_name"] = name
@@ -248,6 +253,7 @@ def toggle_inbound_token(token_id):
     tok = ScimInboundToken.query.get_or_404(token_id)
     tok.enabled = not tok.enabled
     db.session.commit()
+    record('scim', f"{'Enabled' if tok.enabled else 'Disabled'} inbound token", target=tok.name, status='info')
     flash(f"Token {tok.name!r} {'enabled' if tok.enabled else 'disabled'}.", "success")
     return redirect(url_for("scim_admin.list_inbound_tokens"))
 
@@ -259,6 +265,7 @@ def delete_inbound_token(token_id):
     name = tok.name
     db.session.delete(tok)
     db.session.commit()
+    record('scim', 'Deleted inbound token', target=name)
     flash(f"Token {name!r} deleted.", "success")
     return redirect(url_for("scim_admin.list_inbound_tokens"))
 

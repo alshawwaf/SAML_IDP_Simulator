@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Activity #{{ entry.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-gradient mb-0"><i class="bi bi-journal-code me-2"></i>Activity Entry #{{ entry.id }}</h2>
+    <a href="{{ url_for('admin.activity_log') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Log</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card glass border-0 h-100">
+        <div class="card-body">
+          <h6 class="text-white mb-3"><i class="bi bi-info-circle me-2"></i>Details</h6>
+          <dl class="row small mb-0">
+            <dt class="col-4 text-muted">When</dt>
+            <dd class="col-8">{{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</dd>
+            <dt class="col-4 text-muted">Actor</dt>
+            <dd class="col-8">{{ entry.actor or '—' }}</dd>
+            <dt class="col-4 text-muted">Category</dt>
+            <dd class="col-8"><code>{{ entry.category }}</code></dd>
+            <dt class="col-4 text-muted">Action</dt>
+            <dd class="col-8">{{ entry.action }}</dd>
+            <dt class="col-4 text-muted">Target</dt>
+            <dd class="col-8"><code>{{ entry.target or '—' }}</code></dd>
+            <dt class="col-4 text-muted">Status</dt>
+            <dd class="col-8"><span class="badge bg-{{ 'success' if entry.status == 'success' else 'danger' if entry.status == 'error' else 'secondary' }}">{{ entry.status }}</span></dd>
+            {% if entry.method %}
+            <dt class="col-4 text-muted">Request</dt>
+            <dd class="col-8"><span class="badge bg-secondary me-1">{{ entry.method }}</span><code class="small">{{ entry.path }}</code></dd>
+            {% endif %}
+            {% if entry.ip %}
+            <dt class="col-4 text-muted">IP</dt>
+            <dd class="col-8"><code>{{ entry.ip }}</code></dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card glass border-0 h-100">
+        <div class="card-body">
+          <h6 class="text-white mb-3"><i class="bi bi-card-text me-2"></i>Detail</h6>
+          {% if entry.detail %}
+          <pre class="bg-dark p-3 rounded small text-info" style="max-height: 420px; overflow:auto;"><code>{{ entry.detail }}</code></pre>
+          {% else %}
+          <p class="text-muted small">No additional detail recorded.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

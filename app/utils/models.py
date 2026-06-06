@@ -54,6 +54,22 @@ class ServiceProvider(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class ActivityLog(db.Model):
+    """App-wide audit log — one row per notable change (auth, user/SP CRUD,
+    SCIM config, settings). Written via app.utils.activity.record()."""
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    actor = db.Column(db.String(150))                     # admin username / user / "system"
+    category = db.Column(db.String(40), index=True)       # auth|user|service_provider|scim|saml|settings
+    action = db.Column(db.String(160))                    # human-readable summary
+    target = db.Column(db.String(255))                    # affected object (username, SP name, …)
+    status = db.Column(db.String(20), default="success")  # success | error | info
+    detail = db.Column(db.Text)                           # optional JSON/text context
+    ip = db.Column(db.String(64))
+    method = db.Column(db.String(10))
+    path = db.Column(db.String(255))
+
+
 def ensure_schema(engine):
     """Idempotent additive migrations. Safe to call on every startup.
 

@@ -350,6 +350,7 @@ Synced users appear in Check Point SASE under **Team → Members** with Identity
 - **Secrets** — `SECRET_KEY` is generated and persisted when not provided; it is never hardcoded. Outbound SCIM tokens are Fernet-encrypted at rest; inbound tokens are stored as SHA-256 hashes.
 - **Auth & rate limiting** — admin and SSO login endpoints are rate-limited (Flask-Limiter). `/scim/v2/*` uses bearer tokens and is CSRF-exempt; the admin UI keeps CSRF protection.
 - **Runtime** — served by gunicorn in the container; `FLASK_DEBUG` defaults off.
+- **Audit log** — admin, auth, SAML, and SCIM changes are recorded to an activity log (**Admin → Activity**) with category/status filters and per-entry detail, alongside the SCIM push log.
 - **Persistence** — SQLite lives at `/app/data/app.db` on the `saml_idp_data` volume and survives redeploys; demo users and the four SP templates are seeded only into an empty database.
 
 ## Troubleshooting

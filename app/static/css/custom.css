@@ -100,6 +100,14 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 1031;
   /* Fully opaque so page content never bleeds through the open menu. */
   background-color: var(--bg-elevated) !important;
+  /* Read as a real dropdown, not a detached floating card: sit just under the
+     bar, hug the content width, lighter corners/border/shadow. */
+  margin-top: 0.4rem !important;
+  min-width: 11rem;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 0.3rem !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
 }
 .navbar-brand .text-gradient {
   font-size: 1.4rem !important;

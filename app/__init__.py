@@ -363,7 +363,7 @@ def _init_database():
         lock_file.close()  # closing the fd releases the flock
 
 
-def create_app():
+def create_app(init_db=True):
     app = Flask(__name__)
     app.config['SECRET_KEY'] = config_manager.SECRET_KEY
 
@@ -406,10 +406,14 @@ def create_app():
         from app.routes.metadata import metadata_bp
         from app.routes.auth import auth_bp
         from app.routes.admin import admin_bp
+        from app.routes.radius import radius_bp
+        from app.routes.tacacs import tacacs_bp
 
         app.register_blueprint(metadata_bp)
         app.register_blueprint(auth_bp)
         app.register_blueprint(admin_bp)
+        app.register_blueprint(radius_bp)
+        app.register_blueprint(tacacs_bp)
 
         # SP-initiated SSO may arrive via the HTTP-POST binding (AuthnRequest in
         # a form with no Flask CSRF token). Exempt just the /sso view; /login
@@ -420,9 +424,14 @@ def create_app():
         # SCIM models are always imported so their tables exist; the SCIM
         # feature itself is gated at runtime by config_manager.scim_enabled().
         from app.utils import models_scim  # noqa: F401
+        from app.utils import models_aaa   # noqa: F401  (RADIUS/TACACS tables)
 
-        _init_database()
-        _log_admin_credentials()
+        # The protocol process (app.services.runner) calls create_app(init_db=
+        # False): only the web process runs migrations/seeding, so there's no
+        # init race; the protocol side just reads the schema the web created.
+        if init_db:
+            _init_database()
+            _log_admin_credentials()
 
         # SCIM routes are always registered; scim_enabled() (runtime, default on)
         # gates them so the admin can toggle SCIM from the portal without a restart.

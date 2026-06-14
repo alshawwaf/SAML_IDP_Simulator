@@ -27,8 +27,11 @@ ENV CERT_PATH=/app/app/certs/idp-cert.pem \
     KEY_PATH=/app/app/certs/idp-key.pem \
     USE_GUNICORN=true
 
-# Expose the port Flask runs on
+# Expose the web port plus the AAA protocol ports (RADIUS UDP, TACACS+ TCP).
 EXPOSE 5000
+EXPOSE 1812/udp
+EXPOSE 1813/udp
+EXPOSE 4949/tcp
 
 # Start the application through the runtime initializer
 CMD ["python", "entrypoint.py"]

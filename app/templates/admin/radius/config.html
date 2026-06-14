@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}RADIUS Simulator{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-gradient mb-0"><i class="bi bi-router me-2"></i>RADIUS Simulator</h2>
+    <a href="{{ url_for('radius.log') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-journal-text me-1"></i>Live log</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card glass border-0 h-100"><div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-plug me-2"></i>Connection</h5>
+        <p class="small text-muted">Set these on the Check Point RADIUS server object.</p>
+        <label class="form-label small text-muted mb-1">Shared secret</label>
+        <div class="input-group input-group-sm mb-3">
+          <input id="radsecret" type="password" class="form-control bg-dark text-white border-secondary" value="{{ cfg.RADIUS_SECRET }}" readonly>
+          <button class="btn btn-outline-secondary" type="button"
+            onclick="var s=document.getElementById('radsecret');s.type=s.type=='password'?'text':'password';">Show</button>
+        </div>
+        <ul class="list-unstyled small mb-2">
+          <li>Authentication port: <code>{{ cfg.RADIUS_AUTH_PORT }}</code> (UDP)</li>
+          <li>Accounting port: <code>{{ cfg.RADIUS_ACCT_PORT }}</code> (UDP)</li>
+          <li>MFA passcode (default): <code>{{ default_otp }}</code></li>
+        </ul>
+        <p class="small text-muted mb-0">Demo defaults — override via <code>RADIUS_SECRET</code> and the AAA env vars.</p>
+      </div></div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card glass border-0 h-100"><div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-list-check me-2"></i>Check Point recipe</h5>
+        <ol class="small mb-0 ps-3">
+          <li>SmartConsole → New → Server → RADIUS: host = this server, port {{ cfg.RADIUS_AUTH_PORT }}, secret above.</li>
+          <li>Point Identity Awareness or Remote Access VPN at this RADIUS server.</li>
+          <li>Sign in as a demo user below — groups arrive as <code>Class</code> attributes.</li>
+          <li>Enable MFA for a user to require the one-time passcode (Access-Challenge).</li>
+        </ol>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card glass border-0 mt-3"><div class="card-body">
+    <h5 class="mb-3"><i class="bi bi-shield-lock me-2"></i>Per-user MFA</h5>
+    <p class="small text-muted">Users authenticate with their directory password. Turn on MFA to require a one-time passcode.</p>
+    <div class="small text-muted row g-2 px-1 mb-1 d-none d-md-flex">
+      <div class="col-md-3">User</div><div class="col-md-4">Groups</div>
+      <div class="col-md-2">MFA</div><div class="col-md-2">OTP</div><div class="col-md-1"></div>
+    </div>
+    {% for u in users %}
+    {% set a = aaa.get(u.id) %}
+    <form method="post" action="{{ url_for('radius.set_mfa') }}"
+          class="row g-2 align-items-center border-top border-secondary border-opacity-25 py-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="username" value="{{ u.username }}">
+      <div class="col-md-3 small text-white">{{ u.username }}</div>
+      <div class="col-md-4 small">{% for g in u.group_names %}<span class="badge bg-secondary me-1">{{ g }}</span>{% endfor %}</div>
+      <div class="col-md-2"><div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="mfa" {% if a and a.mfa %}checked{% endif %}></div></div>
+      <div class="col-md-2"><input class="form-control form-control-sm bg-dark text-white border-secondary"
+        name="otp" value="{{ a.otp if a and a.otp else default_otp }}"></div>
+      <div class="col-md-1 text-end"><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
+    </form>
+    {% endfor %}
+  </div></div>
+</div>
+{% endblock %}

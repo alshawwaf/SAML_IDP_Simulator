@@ -30,6 +30,13 @@ services:
       # Dokploy Environment tab.
       - IDP_ENTITY_ID=https://idp.cpdemo.ca
       - SSO_SERVICE_URL=https://idp.cpdemo.ca/sso
+    # RADIUS (UDP) and TACACS+ can't be HTTP-routed by Traefik, so publish them
+    # on the host directly. TACACS+ uses the standard host port 49 mapped to the
+    # container's unprivileged 4949. Open these in the host firewall.
+    ports:
+      - "1812:1812/udp"
+      - "1813:1813/udp"
+      - "49:4949/tcp"
     volumes:
       - saml_idp_data:/app/data
       - saml_idp_certs:/app/app/certs

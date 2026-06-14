@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import os
+import signal
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 CERT_PATH = os.getenv("CERT_PATH", "app/certs/idp-cert.pem")
@@ -45,26 +48,56 @@ def generate_certificates():
     print("✅ Certificate successfully created.")
 
 
+def _spawn(cmd, label):
+    print(f"▶  starting {label}: {' '.join(cmd)}", flush=True)
+    return subprocess.Popen(cmd)
+
+
 def run_server():
-    """Serve via gunicorn when USE_GUNICORN=true (the container default), else
-    the Flask dev server. Falls back to Flask if gunicorn isn't installed
-    (e.g. a minimal local checkout, or Windows where gunicorn is unsupported)."""
+    """Launch the protocol process (RADIUS + TACACS+) AND the web server, then
+    supervise both. If either exits, tear the other down and exit non-zero so the
+    container's restart policy brings everything back cleanly — no half-up states.
+
+    The protocol servers MUST run in their own process: gunicorn runs multiple
+    workers and only one process can bind the RADIUS/TACACS+ ports.
+    """
+    procs = {}
+    procs["aaa"] = _spawn([sys.executable, "-m", "app.services.runner"], "AAA protocols")
+
     if os.getenv("USE_GUNICORN", "false").lower() == "true":
         try:
             import gunicorn  # noqa: F401
             host = os.getenv("IDP_HOST", "0.0.0.0")
             port = os.getenv("IDP_PORT", "5000")
             workers = os.getenv("GUNICORN_WORKERS", "2")
-            print(f"🧭 Starting gunicorn on {host}:{port} ({workers} workers)...")
-            subprocess.run(
-                ["gunicorn", "--bind", f"{host}:{port}",
-                 "--workers", workers, "--access-logfile", "-", "run:app"],
-                check=True,
-            )
-            return
+            procs["web"] = _spawn(
+                ["gunicorn", "--bind", f"{host}:{port}", "--workers", workers,
+                 "--access-logfile", "-", "run:app"], "gunicorn web")
         except ImportError:
-            print("⚠️  USE_GUNICORN=true but gunicorn isn't installed — using the Flask server.")
-    subprocess.run(["python", "run.py"], check=True)
+            print("⚠️  gunicorn not installed — using the Flask dev server.")
+            procs["web"] = _spawn([sys.executable, "run.py"], "flask web")
+    else:
+        procs["web"] = _spawn([sys.executable, "run.py"], "flask web")
+
+    def _shutdown(*_):
+        for p in procs.values():
+            if p.poll() is None:
+                try:
+                    p.terminate()
+                except Exception:
+                    pass
+        sys.exit(1)
+
+    signal.signal(signal.SIGTERM, _shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
+
+    while True:
+        for name, p in procs.items():
+            rc = p.poll()
+            if rc is not None:
+                print(f"✖  '{name}' exited (rc={rc}); shutting down so the container restarts clean.", flush=True)
+                _shutdown()
+        time.sleep(2)
 
 
 def main():

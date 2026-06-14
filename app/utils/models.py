@@ -6,6 +6,26 @@ import uuid
 
 db = SQLAlchemy()
 
+
+# Harden SQLite for the multi-process deployment (gunicorn workers + the AAA
+# protocol process all share one DB file): WAL lets readers and the single
+# writer coexist, and busy_timeout makes a brief wait instead of a "database is
+# locked" error. Registered once at import; only touches SQLite connections.
+from sqlalchemy import event as _sa_event
+from sqlalchemy.engine import Engine as _SA_Engine
+import sqlite3 as _sqlite3
+
+
+@_sa_event.listens_for(_SA_Engine, "connect")
+def _set_sqlite_pragmas(dbapi_conn, _rec):
+    if isinstance(dbapi_conn, _sqlite3.Connection):
+        cur = dbapi_conn.cursor()
+        cur.execute("PRAGMA journal_mode=WAL")
+        cur.execute("PRAGMA busy_timeout=15000")
+        cur.execute("PRAGMA synchronous=NORMAL")
+        cur.close()
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)

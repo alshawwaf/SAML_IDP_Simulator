@@ -1,0 +1,31 @@
+# Minimal RFC 2865/2866 dictionary for the RADIUS simulator.
+# NOTE: User-Password is `octets` (NOT string) so pyrad keeps the encrypted
+# bytes intact for PwDecrypt — typing it as `string` UTF-8-decodes and corrupts it.
+ATTRIBUTE	User-Name		1	string
+ATTRIBUTE	User-Password		2	octets
+ATTRIBUTE	CHAP-Password		3	octets
+ATTRIBUTE	NAS-IP-Address		4	ipaddr
+ATTRIBUTE	NAS-Port		5	integer
+ATTRIBUTE	Service-Type		6	integer
+ATTRIBUTE	Framed-Protocol		7	integer
+ATTRIBUTE	Framed-IP-Address	8	ipaddr
+ATTRIBUTE	Filter-Id		11	string
+ATTRIBUTE	Reply-Message		18	string
+ATTRIBUTE	State			24	octets
+ATTRIBUTE	Class			25	octets
+ATTRIBUTE	Vendor-Specific		26	octets
+ATTRIBUTE	Session-Timeout		27	integer
+ATTRIBUTE	Called-Station-Id	30	string
+ATTRIBUTE	Calling-Station-Id	31	string
+ATTRIBUTE	NAS-Identifier		32	string
+ATTRIBUTE	Acct-Status-Type	40	integer
+ATTRIBUTE	Acct-Session-Id		44	string
+ATTRIBUTE	NAS-Port-Type		61	integer
+ATTRIBUTE	Message-Authenticator	80	octets
+
+VALUE	Service-Type		Login-User		1
+VALUE	Service-Type		Framed-User		2
+VALUE	Service-Type		Administrative-User	6
+VALUE	Acct-Status-Type	Start			1
+VALUE	Acct-Status-Type	Stop			2
+VALUE	Acct-Status-Type	Interim-Update		3

@@ -119,6 +119,19 @@ class ConfigManager:
             self.SCIM_ENCRYPTION_KEY = base64.urlsafe_b64encode(derived).decode("ascii")
             self.SCIM_ENCRYPTION_KEY_DERIVED = True
 
+        # AAA simulators (RADIUS / TACACS+). Shared secrets are demo defaults —
+        # override via env for anything beyond a throwaway lab (same philosophy
+        # as ADMIN_PASSWORD). RADIUS uses 1812/1813; TACACS+ binds an unprivileged
+        # port inside the container (mapped to host 49 in compose) so we stay
+        # non-root. AAA_DEFAULT_OTP is the predictable passcode for MFA demo users.
+        self.RADIUS_SECRET = os.getenv("RADIUS_SECRET", "testing123")
+        self.RADIUS_AUTH_PORT = int(os.getenv("RADIUS_AUTH_PORT", 1812))
+        self.RADIUS_ACCT_PORT = int(os.getenv("RADIUS_ACCT_PORT", 1813))
+        self.TACACS_SECRET = os.getenv("TACACS_SECRET", "testing123")
+        self.TACACS_PORT = int(os.getenv("TACACS_PORT", 4949))
+        self.AAA_DEFAULT_OTP = os.getenv("AAA_DEFAULT_OTP", "123456")
+        self.AAA_BIND = os.getenv("AAA_BIND", "0.0.0.0")
+
     def effective_entity_id(self):
         """The Entity ID to advertise. Explicit env var wins; otherwise derive
         from the live request host so it matches the real deployment URL."""

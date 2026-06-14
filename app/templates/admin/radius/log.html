@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}RADIUS Log{% endblock %}
+{% block content %}
+<meta http-equiv="refresh" content="5">
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="text-gradient mb-0"><i class="bi bi-journal-text me-2"></i>RADIUS Live Log <span class="small text-muted">(5s refresh)</span></h2>
+    <a href="{{ url_for('radius.config') }}" class="btn btn-outline-light btn-sm">Config</a>
+  </div>
+  <div class="card glass border-0"><div class="card-body p-0"><div class="table-responsive">
+    <table class="table table-dark table-hover mb-0">
+      <thead><tr class="small text-muted">
+        <th class="px-3 py-2">When</th><th>Kind</th><th>User</th><th>NAS</th><th>Result</th><th>Detail</th>
+      </tr></thead>
+      <tbody>
+      {% for l in logs %}
+        <tr>
+          <td class="px-3 py-2 small text-muted text-nowrap">{{ l.created_at.strftime('%H:%M:%S') }}</td>
+          <td class="small">{{ l.kind }}</td>
+          <td class="small text-white">{{ l.username }}</td>
+          <td class="small">{{ l.nas }}</td>
+          <td class="small"><span class="badge bg-{{ 'success' if l.result in ['accept','start'] else 'danger' if l.result in ['reject','error'] else 'secondary' }}">{{ l.result }}</span></td>
+          <td class="small text-muted">{{ l.detail }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-center text-muted small py-4">No RADIUS traffic yet — point a gateway (or the test client) here.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div></div></div>
+</div>
+{% endblock %}

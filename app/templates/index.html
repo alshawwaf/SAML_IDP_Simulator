@@ -5,9 +5,9 @@
 <!-- Hero Section -->
 <section class="hero text-center">
     <div class="container hero-inner mx-auto stagger">
-        <span class="eyebrow"><span class="dot"></span>SAML 2.0 &nbsp;·&nbsp; SCIM 2.0</span>
-        <h1 class="hero-title text-gradient">Identity Provider,<br>made simple.</h1>
-        <p class="hero-sub mx-auto">Test, simulate, and debug Check Point SAML SSO and SCIM provisioning integrations — from one self-hosted IdP.</p>
+        <span class="eyebrow"><span class="dot"></span>SAML 2.0 &nbsp;·&nbsp; SCIM 2.0 &nbsp;·&nbsp; RADIUS &nbsp;·&nbsp; TACACS+</span>
+        <h1 class="hero-title text-gradient">Identity &amp; Access,<br>made simple.</h1>
+        <p class="hero-sub mx-auto">Test, simulate, and debug Check Point identity integrations — SAML SSO, SCIM provisioning, RADIUS, and TACACS+ — from one self-hosted box.</p>
 
         <div class="hero-actions">
             <a href="/saml-test" class="btn btn-primary btn-lg">
@@ -27,25 +27,34 @@
 <section class="features">
     <div class="container">
         <div class="row g-3 g-md-4 stagger">
-            <div class="col-md-4">
-                <div class="feature-card">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card h-100">
                     <div class="feature-icon"><i class="bi bi-shield-lock"></i></div>
                     <h3>SAML 2.0 SSO</h3>
-                    <p>SP-initiated single sign-on with signed assertions, multi-SP support, and dynamic claim-to-attribute mapping.</p>
+                    <p>SP-initiated SSO with signed assertions, multi-SP support, and dynamic claim mapping.</p>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="feature-card">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card h-100">
                     <div class="feature-icon"><i class="bi bi-arrow-left-right"></i></div>
-                    <h3>SCIM 2.0 Provisioning</h3>
-                    <p>Bidirectional provisioning — receive pushes from Entra ID or Okta, and sync users out to Check Point SASE.</p>
+                    <h3>SCIM 2.0</h3>
+                    <p>Bidirectional provisioning — receive pushes from Entra/Okta, sync users out to Check Point SASE.</p>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="bi bi-people"></i></div>
-                    <h3>Users &amp; Admin</h3>
-                    <p>Fine-grained user and group management, one-click metadata and certificate download, and a full push audit log.</p>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card h-100">
+                    <div class="feature-icon"><i class="bi bi-router"></i></div>
+                    <h3>RADIUS</h3>
+                    <p>Auth + accounting with an MFA challenge for Identity Awareness &amp; Remote Access VPN.</p>
+                    {% if session.get('admin_logged_in') %}<a href="{{ url_for('radius.config') }}" class="small d-inline-block mt-2">Manage →</a>{% endif %}
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card h-100">
+                    <div class="feature-icon"><i class="bi bi-terminal"></i></div>
+                    <h3>TACACS+</h3>
+                    <p>Device-admin AAA for Gaia / SmartConsole — ASCII &amp; PAP login with admin authorization.</p>
+                    {% if session.get('admin_logged_in') %}<a href="{{ url_for('tacacs.config') }}" class="small d-inline-block mt-2">Manage →</a>{% endif %}
                 </div>
             </div>
         </div>

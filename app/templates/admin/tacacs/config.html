@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}TACACS+ Simulator{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-gradient mb-0"><i class="bi bi-terminal me-2"></i>TACACS+ Simulator</h2>
+    <a href="{{ url_for('tacacs.log') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-journal-text me-1"></i>Live log</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card glass border-0 h-100"><div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-plug me-2"></i>Connection</h5>
+        <p class="small text-muted">Set these on the Check Point Gaia TACACS+ server.</p>
+        <label class="form-label small text-muted mb-1">Shared secret</label>
+        <div class="input-group input-group-sm mb-3">
+          <input id="tacsecret" type="password" class="form-control bg-dark text-white border-secondary" value="{{ cfg.TACACS_SECRET }}" readonly>
+          <button class="btn btn-outline-secondary" type="button"
+            onclick="var s=document.getElementById('tacsecret');s.type=s.type=='password'?'text':'password';">Show</button>
+        </div>
+        <ul class="list-unstyled small mb-2">
+          <li>Port: <code>49</code> (TCP) — the standard TACACS+ port</li>
+          <li class="text-muted">Container binds <code>{{ cfg.TACACS_PORT }}</code> internally; compose maps host&nbsp;49&nbsp;→&nbsp;{{ cfg.TACACS_PORT }}.</li>
+        </ul>
+        <p class="small text-muted mb-0">Demo default — override via <code>TACACS_SECRET</code>.</p>
+      </div></div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card glass border-0 h-100"><div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-list-check me-2"></i>Gaia recipe</h5>
+        <ol class="small mb-0 ps-3">
+          <li>Gaia Portal → Authentication → TACACS+: add server = this host, port 49, secret above.</li>
+          <li>Map a role (the simulator returns <code>priv-lvl=15</code> so admins get full access).</li>
+          <li>SSH/login to Gaia as a demo user below with their directory password.</li>
+          <li>ASCII and PAP logins are supported; watch them in the live log.</li>
+        </ol>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card glass border-0 mt-3"><div class="card-body">
+    <h5 class="mb-3"><i class="bi bi-people me-2"></i>Demo users</h5>
+    <p class="small text-muted mb-2">TACACS+ authenticates against the shared directory — the same users as SAML and RADIUS. Manage them under <a href="{{ url_for('admin.user_management') }}" class="link-info">Directory → Users</a>.</p>
+    <div class="table-responsive"><table class="table table-dark table-sm mb-0">
+      <thead><tr class="small text-muted"><th>User</th><th>Email</th><th>Groups</th></tr></thead>
+      <tbody>
+      {% for u in users %}
+        <tr><td class="small text-white">{{ u.username }}</td><td class="small text-muted">{{ u.email }}</td>
+        <td class="small">{% for g in u.group_names %}<span class="badge bg-secondary me-1">{{ g }}</span>{% endfor %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div></div>
+</div>
+{% endblock %}

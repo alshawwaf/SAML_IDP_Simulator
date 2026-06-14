@@ -10,6 +10,11 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
+# Quiet pip's root-user warning (the image installs as root by design) and the
+# pip-version check — both are cosmetic stderr noise that shows up red in logs.
+ENV PIP_ROOT_USER_ACTION=ignore \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
 # Copy and install Python dependencies (all pinned in requirements.txt).
 COPY requirements.txt .
 RUN pip install --upgrade pip && \

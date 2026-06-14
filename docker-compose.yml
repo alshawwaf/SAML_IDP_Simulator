@@ -2,7 +2,7 @@ services:
   saml-idp:
     build: .
     image: ghcr.io/alshawwaf/saml_idp_simulator:latest
-    container_name: saml-idp-simulator
+    container_name: identity-access-simulator
     # Static defaults baked in here so a fresh deploy works out-of-the-box.
     # Override any of these via the Dokploy "Environment" tab.
     #

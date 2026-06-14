@@ -57,12 +57,40 @@ The five integrations below have been tested through a full login round-trip. **
 
 ### Dokploy (recommended)
 
-1. Create an application pointing at `https://github.com/alshawwaf/SAML_IDP_Simulator` — `main` branch, **Docker Compose** build type.
-2. In the **Domains** tab, add your domain: port `5000`, service `saml-idp`, HTTPS via Let's Encrypt.
-3. Click **Deploy** (first build ≈ 2 minutes).
-4. *(Optional)* Set `ENABLE_SCIM=true` in the **Environment** tab and redeploy to expose the SCIM surface.
+Deploys straight from this repo — no YAML to paste, and `git push` redeploys.
 
-> **Tip:** the app does not auto-deploy on git push unless you enable **Auto Deploy** in the Dokploy app settings. Otherwise click **Deploy** after each change.
+1. Create a **Compose** service. Under **Provider**, choose **GitHub** (or the
+   **Git** provider with the public URL), pick this repo + the `main` branch,
+   and set **Compose Path** to `docker-compose.yml`.
+2. In the **Environment** tab, set your domain (secrets optional — all have safe
+   defaults):
+   ```
+   IDP_DOMAIN=idp.yourlab.example
+   # optional overrides:
+   ADMIN_PASSWORD=change-me
+   SECRET_KEY=<openssl rand -base64 48>
+   RADIUS_SECRET=change-me
+   TACACS_SECRET=change-me
+   ```
+3. Toggle **Autodeploy** on (redeploy on push), then **Deploy** (first build ≈ 2 min).
+4. *(Optional)* Set `ENABLE_SCIM=true` and redeploy to expose the SCIM surface.
+
+**Open the host firewall** for the AAA protocols — they're published on the host
+because Traefik only proxies HTTP: `udp/1812` + `udp/1813` (RADIUS) and `tcp/49`
+(TACACS+). The web UI is served on `IDP_DOMAIN` via Traefik.
+
+Then point Check Point at it:
+
+| Protocol | Where | Secret |
+|---|---|---|
+| SAML / SCIM | `https://IDP_DOMAIN` (download metadata from the home page) | — |
+| RADIUS | `your-host:1812` | `RADIUS_SECRET` |
+| TACACS+ | `your-host:49` | `TACACS_SECRET` |
+
+Data (users, Service Providers, certs, RADIUS/TACACS settings) persists in the
+`saml_idp_data` / `saml_idp_certs` volumes across redeploys.
+
+> **Tip:** with **Autodeploy** off, click **Deploy** (or **Reload**) after each push.
 
 ### Docker
 

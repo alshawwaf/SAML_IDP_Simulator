@@ -41,26 +41,25 @@
 
       <div class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="bi bi-hdd-network me-1"></i>Simulators
+          <i class="bi bi-hdd-network me-1"></i>Protocols
         </a>
         <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
-          <li class="px-3 pt-2 pb-1 small text-muted text-uppercase">SAML 2.0</li>
+          <li class="px-3 pt-2 pb-1 small text-uppercase fw-bold" style="color:#4dabf7;letter-spacing:.05em">SAML 2.0</li>
           <li><a class="dropdown-item text-white" href="{{ url_for('admin.list_sps') }}"><i class="bi bi-building me-2"></i>Service Providers</a></li>
           {% if scim_enabled %}
           <li><hr class="dropdown-divider"></li>
-          <li class="px-3 pt-2 pb-1 small text-muted text-uppercase">SCIM 2.0</li>
+          <li class="px-3 pt-2 pb-1 small text-uppercase fw-bold" style="color:#ffd43b;letter-spacing:.05em">SCIM 2.0</li>
           <li><a class="dropdown-item text-white" href="{{ url_for('scim_admin.list_targets') }}"><i class="bi bi-cloud-upload me-2"></i>Outbound Targets</a></li>
           <li><a class="dropdown-item text-white" href="{{ url_for('scim_admin.list_inbound_tokens') }}"><i class="bi bi-key me-2"></i>Inbound Tokens</a></li>
           <li><a class="dropdown-item text-white" href="{{ url_for('scim_admin.push_log') }}"><i class="bi bi-journal-text me-2"></i>Push Log</a></li>
           {% endif %}
           <li><hr class="dropdown-divider"></li>
-          <li class="px-3 pt-2 pb-1 small text-muted text-uppercase">AAA</li>
+          <li class="px-3 pt-2 pb-1 small text-uppercase fw-bold" style="color:#69db7c;letter-spacing:.05em">AAA</li>
           <li><a class="dropdown-item text-white" href="{{ url_for('radius.config') }}"><i class="bi bi-router me-2"></i>RADIUS</a></li>
           <li><a class="dropdown-item text-white" href="{{ url_for('tacacs.config') }}"><i class="bi bi-terminal me-2"></i>TACACS+</a></li>
         </ul>
       </div>
 
-      <a href="{{ url_for('admin.activity_log') }}" class="nav-link"><i class="bi bi-clock-history me-1"></i>Activity</a>
       <div class="nav-item dropdown">
         <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="account-avatar"><i class="bi bi-person-fill"></i></span>
@@ -70,6 +69,7 @@
           <li class="px-3 pt-2 pb-1 small text-muted">Signed in as<br><span class="text-white">{{ admin_username }}</span></li>
           <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item text-white" href="{{ url_for('admin.idp_config') }}"><i class="bi bi-gear-wide-connected me-2"></i>IdP Configuration</a></li>
+          <li><a class="dropdown-item text-white" href="{{ url_for('admin.activity_log') }}"><i class="bi bi-clock-history me-2"></i>Activity log</a></li>
           <li>
             <button type="button" class="dropdown-item text-white" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
               <i class="bi bi-key me-2"></i>Change password

@@ -20,7 +20,7 @@ from pyrad.dictionary import Dictionary
 
 from app.utils.config_manager import config_manager
 from app.utils.models import db, User
-from app.utils.models_aaa import AaaUserAuth, get_setting, log_event
+from app.utils.models_aaa import AaaUserAuth, get_setting, log_event, verify_totp
 
 _DICT = Dictionary(os.path.join(os.path.dirname(__file__), "radius_dictionary"))
 _challenges: dict[str, str] = {}
@@ -53,20 +53,19 @@ def handle_auth(data, addr):
     state = binascii.hexlify(pkt["State"][0]).decode() if "State" in pkt else None
     reply = pkt.CreateReply()
 
-    # Second leg of an MFA exchange: the password field now carries the OTP.
+    # Second leg of an MFA exchange: the password field carries the TOTP code.
     if state:
         with _lock:
             pending = _challenges.pop(state, None)
         user = User.query.filter_by(username=username).first() if username else None
         aaa = AaaUserAuth.query.filter_by(user_id=user.id).first() if user else None
-        expected = aaa.otp if (aaa and aaa.otp) else get_setting("default_otp")
-        if pending == username and password and password == expected:
+        if pending == username and verify_totp(aaa, password):
             _accept(reply, user)
-            log_event("radius", "auth", username, nas, "accept", "OTP verified")
+            log_event("radius", "auth", username, nas, "accept", "TOTP verified")
         else:
             reply.code = packet.AccessReject
-            reply.AddAttribute("Reply-Message", "Invalid one-time passcode")
-            log_event("radius", "auth", username, nas, "reject", "bad OTP")
+            reply.AddAttribute("Reply-Message", "Invalid authenticator code")
+            log_event("radius", "auth", username, nas, "reject", "bad TOTP")
         return reply
 
     user = User.query.filter_by(username=username).first()
@@ -82,7 +81,7 @@ def handle_auth(data, addr):
         with _lock:
             _challenges[binascii.hexlify(token).decode()] = username
         reply.code = packet.AccessChallenge
-        reply.AddAttribute("Reply-Message", "Enter your one-time passcode")
+        reply.AddAttribute("Reply-Message", "Enter the code from your authenticator app")
         reply.AddAttribute("State", token)
         log_event("radius", "auth", username, nas, "challenge", "MFA requested")
     else:

@@ -147,3 +147,12 @@ def ensure_schema(engine):
         if "description" not in scim_group_cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE scim_group ADD COLUMN description VARCHAR(255)"))
+
+    # aaa_user_auth.totp_secret — added when RADIUS MFA moved from a static OTP
+    # to TOTP. create_all() makes it on fresh DBs; this covers DBs created by an
+    # earlier deploy that only had the static-otp column.
+    if inspector.has_table("aaa_user_auth"):
+        aaa_cols = {c["name"] for c in inspector.get_columns("aaa_user_auth")}
+        if "totp_secret" not in aaa_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE aaa_user_auth ADD COLUMN totp_secret TEXT"))

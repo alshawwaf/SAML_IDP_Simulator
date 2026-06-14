@@ -21,21 +21,17 @@
               onclick="var e=document.getElementById('radsecret');e.type=e.type=='password'?'text':'password';">Show</button>
           </div>
           <div class="row g-2 mb-3">
-            <div class="col-4">
+            <div class="col-6">
               <label class="form-label small text-muted mb-1">Auth port (UDP)</label>
               <input name="radius_auth_port" type="number" min="1" max="65535" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ s.radius_auth_port }}">
             </div>
-            <div class="col-4">
+            <div class="col-6">
               <label class="form-label small text-muted mb-1">Acct port (UDP)</label>
               <input name="radius_acct_port" type="number" min="1" max="65535" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ s.radius_acct_port }}">
             </div>
-            <div class="col-4">
-              <label class="form-label small text-muted mb-1">Default OTP</label>
-              <input name="default_otp" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ s.default_otp }}">
-            </div>
           </div>
           <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-save me-1"></i>Save connection</button>
-          <p class="small text-muted mt-2 mb-0">Secret &amp; OTP apply immediately. Port changes apply on restart and must match the host-published port.</p>
+          <p class="small text-muted mt-2 mb-0">Secret applies immediately. Port changes apply on restart and must match the host-published port.</p>
         </form>
       </div></div>
     </div>
@@ -46,7 +42,7 @@
           <li class="mb-1">SmartConsole → New → Server → RADIUS: host = this server, port {{ s.radius_auth_port }}, secret above.</li>
           <li class="mb-1">Point Identity Awareness or Remote Access VPN at this RADIUS server.</li>
           <li class="mb-1">Sign in as a demo user below — groups arrive as <code>Class</code> attributes.</li>
-          <li>Enable MFA for a user to require the one-time passcode (Access-Challenge).</li>
+          <li>Enable MFA for a user, scan the QR with an authenticator app, and the login is challenged for the rotating code.</li>
         </ol>
       </div></div>
     </div>
@@ -54,26 +50,101 @@
 
   <div class="card glass border-0 mt-3"><div class="card-body">
     <h5 class="text-white mb-3"><i class="bi bi-shield-lock me-2"></i>Per-user MFA</h5>
-    <p class="small text-muted">Users authenticate with their directory password. Turn on MFA to require a one-time passcode.</p>
+    <p class="small text-muted">Users authenticate with their directory password. Turn on MFA to require a TOTP code from an authenticator app (Microsoft / Google Authenticator).</p>
     <div class="small text-muted row g-2 px-1 mb-1 d-none d-md-flex">
       <div class="col-md-3">User</div><div class="col-md-4">Groups</div>
-      <div class="col-md-2">MFA</div><div class="col-md-2">OTP</div><div class="col-md-1"></div>
+      <div class="col-md-2">MFA</div><div class="col-md-2">Authenticator</div><div class="col-md-1"></div>
     </div>
     {% for u in users %}
     {% set a = aaa.get(u.id) %}
-    <form method="post" action="{{ url_for('radius.set_mfa') }}"
-          class="row g-2 align-items-center border-top border-secondary border-opacity-25 py-2">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="username" value="{{ u.username }}">
-      <div class="col-md-3 small text-white">{{ u.username }}</div>
-      <div class="col-md-4 small">{% for g in u.group_names %}<span class="badge bg-secondary me-1">{{ g }}</span>{% endfor %}</div>
-      <div class="col-md-2"><div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" name="mfa" {% if a and a.mfa %}checked{% endif %}></div></div>
-      <div class="col-md-2"><input class="form-control form-control-sm bg-dark text-white border-secondary"
-        name="otp" value="{{ a.otp if a and a.otp else s.default_otp }}"></div>
-      <div class="col-md-1 text-end"><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
-    </form>
+    <div class="row g-2 align-items-center border-top border-secondary border-opacity-25 py-2">
+      <form method="post" action="{{ url_for('radius.set_mfa') }}" class="col-md-7 row g-2 align-items-center m-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="username" value="{{ u.username }}">
+        <div class="col-md-5 small text-white">{{ u.username }}</div>
+        <div class="col-md-7 small">{% for g in u.group_names %}<span class="badge bg-secondary me-1">{{ g }}</span>{% endfor %}</div>
+      </form>
+      <div class="col-md-2">
+        <form method="post" action="{{ url_for('radius.set_mfa') }}" class="d-flex align-items-center gap-2 m-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="username" value="{{ u.username }}">
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" name="mfa" onchange="this.form.submit()" {% if a and a.mfa %}checked{% endif %}>
+          </div>
+        </form>
+      </div>
+      <div class="col-md-2">
+        {% if a and a.mfa %}
+        <button type="button" class="btn btn-outline-info btn-sm" onclick="openTotp('{{ u.username }}')"><i class="bi bi-qr-code me-1"></i>Setup</button>
+        {% else %}<span class="small text-muted">—</span>{% endif %}
+      </div>
+      <div class="col-md-1"></div>
+    </div>
     {% endfor %}
   </div></div>
 </div>
+
+<!-- TOTP enrollment modal -->
+<div class="modal fade" id="totpModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-qr-code me-2"></i>Authenticator — <span id="totpUser"></span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p class="small text-muted mb-2">Scan with Microsoft / Google Authenticator, then the RADIUS login is challenged for the rotating code.</p>
+        <div id="totpQr" class="d-inline-block bg-white p-2 rounded mb-3" style="min-width:180px;min-height:180px"></div>
+        <div class="small text-muted">Secret (manual entry)</div>
+        <div id="totpSecret" class="font-monospace text-white mb-3" style="word-break:break-all"></div>
+        <div class="small text-muted">Current code</div>
+        <div class="display-6 text-white fw-bold"><span id="totpCode">------</span></div>
+        <div class="small text-muted">refreshes in <span id="totpRemaining">–</span>s</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="totpRegen" class="btn btn-outline-warning btn-sm"><i class="bi bi-arrow-repeat me-1"></i>Regenerate secret</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTP_CSRF = "{{ csrf_token() }}";
+let totpTimer = null, totpCurrentUser = null;
+
+async function totpFetch(username, withQr) {
+  const r = await fetch(`/admin/radius/totp/${encodeURIComponent(username)}`);
+  if (!r.ok) return;
+  const d = await r.json();
+  if (!d.ok) return;
+  if (withQr) {
+    document.getElementById('totpQr').innerHTML = d.qr;
+    document.getElementById('totpSecret').textContent = d.secret;
+  }
+  document.getElementById('totpCode').textContent = d.code;
+  document.getElementById('totpRemaining').textContent = d.remaining;
+}
+
+function openTotp(username) {
+  totpCurrentUser = username;
+  document.getElementById('totpUser').textContent = username;
+  document.getElementById('totpQr').innerHTML = '<div class="text-muted small p-4">Loading…</div>';
+  document.getElementById('totpSecret').textContent = '';
+  document.getElementById('totpCode').textContent = '------';
+  totpFetch(username, true);
+  clearInterval(totpTimer);
+  totpTimer = setInterval(() => totpFetch(username, false), 2000);
+  const el = document.getElementById('totpModal');
+  el.addEventListener('hidden.bs.modal', () => clearInterval(totpTimer), { once: true });
+  new bootstrap.Modal(el).show();
+}
+
+document.getElementById('totpRegen').addEventListener('click', async () => {
+  if (!totpCurrentUser) return;
+  await fetch(`/admin/radius/totp/${encodeURIComponent(totpCurrentUser)}/regenerate`,
+             { method: 'POST', headers: { 'X-CSRFToken': TOTP_CSRF } });
+  totpFetch(totpCurrentUser, true);
+});
+</script>
 {% endblock %}

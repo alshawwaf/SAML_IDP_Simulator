@@ -12,6 +12,8 @@ Werkzeug==3.0.3
 flask-login
 gunicorn==22.0.0
 pyrad==2.4                # RADIUS auth/accounting simulator (BSD-3 — no GPL)
+pyotp==2.9.0             # TOTP (RFC 6238) for RADIUS MFA (MIT)
+qrcode==7.4.2            # QR codes for TOTP enrollment, SVG output (BSD)
 
 # SCIM 2.0 (enabled via ENABLE_SCIM=true; pure additions — no SAML impact)
 scim2-models>=0.6.12

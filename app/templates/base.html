@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>{% block title %}SAML + SCIM IDP Simulator{% endblock %}</title>
+  <title>{% block title %}Identity &amp; Access Simulator{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,7 +22,7 @@
 <nav class="navbar navbar-expand-lg">
   <div class="container">
     <a class="navbar-brand" href="/">
-      <span class="fs-3 text-gradient fw-bold">SAML + SCIM IDP</span>
+      <span class="fs-3 text-gradient fw-bold">Identity &amp; Access</span>
     </a>
 
     <div class="navbar-nav ms-auto align-items-center gap-4 d-none d-lg-flex">
@@ -46,6 +46,7 @@
         <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
           <li class="px-3 pt-2 pb-1 small text-uppercase fw-bold" style="color:#4dabf7;letter-spacing:.05em">SAML 2.0</li>
           <li><a class="dropdown-item text-white" href="{{ url_for('admin.list_sps') }}"><i class="bi bi-building me-2"></i>Service Providers</a></li>
+          <li><a class="dropdown-item text-white" href="{{ url_for('admin.idp_config') }}"><i class="bi bi-gear-wide-connected me-2"></i>IdP Configuration</a></li>
           {% if scim_enabled %}
           <li><hr class="dropdown-divider"></li>
           <li class="px-3 pt-2 pb-1 small text-uppercase fw-bold" style="color:#ffd43b;letter-spacing:.05em">SCIM 2.0</li>
@@ -68,7 +69,6 @@
         <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary shadow-lg">
           <li class="px-3 pt-2 pb-1 small text-muted">Signed in as<br><span class="text-white">{{ admin_username }}</span></li>
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item text-white" href="{{ url_for('admin.idp_config') }}"><i class="bi bi-gear-wide-connected me-2"></i>IdP Configuration</a></li>
           <li><a class="dropdown-item text-white" href="{{ url_for('admin.activity_log') }}"><i class="bi bi-clock-history me-2"></i>Activity log</a></li>
           <li>
             <button type="button" class="dropdown-item text-white" data-bs-toggle="modal" data-bs-target="#changePasswordModal">

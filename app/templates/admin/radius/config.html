@@ -10,29 +10,42 @@
   <div class="row g-3">
     <div class="col-lg-6">
       <div class="card glass border-0 h-100"><div class="card-body">
-        <h5 class="mb-3"><i class="bi bi-plug me-2"></i>Connection</h5>
-        <p class="small text-muted">Set these on the Check Point RADIUS server object.</p>
-        <label class="form-label small text-muted mb-1">Shared secret</label>
-        <div class="input-group input-group-sm mb-3">
-          <input id="radsecret" type="password" class="form-control bg-dark text-white border-secondary" value="{{ cfg.RADIUS_SECRET }}" readonly>
-          <button class="btn btn-outline-secondary" type="button"
-            onclick="var s=document.getElementById('radsecret');s.type=s.type=='password'?'text':'password';">Show</button>
-        </div>
-        <ul class="list-unstyled small mb-2">
-          <li>Authentication port: <code>{{ cfg.RADIUS_AUTH_PORT }}</code> (UDP)</li>
-          <li>Accounting port: <code>{{ cfg.RADIUS_ACCT_PORT }}</code> (UDP)</li>
-          <li>MFA passcode (default): <code>{{ default_otp }}</code></li>
-        </ul>
-        <p class="small text-muted mb-0">Demo defaults — override via <code>RADIUS_SECRET</code> and the AAA env vars.</p>
+        <h5 class="text-white mb-3"><i class="bi bi-plug me-2"></i>Connection</h5>
+        <p class="small text-muted">Editable here and saved — no env vars or redeploy needed. The shared secret is stored encrypted at rest.</p>
+        <form method="post" action="{{ url_for('radius.save_settings') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label small text-muted mb-1">Shared secret</label>
+          <div class="input-group input-group-sm mb-3">
+            <input id="radsecret" type="password" name="radius_secret" class="form-control bg-dark text-white border-secondary" value="{{ s.radius_secret }}">
+            <button class="btn btn-outline-secondary" type="button"
+              onclick="var e=document.getElementById('radsecret');e.type=e.type=='password'?'text':'password';">Show</button>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <label class="form-label small text-muted mb-1">Auth port (UDP)</label>
+              <input name="radius_auth_port" type="number" min="1" max="65535" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ s.radius_auth_port }}">
+            </div>
+            <div class="col-4">
+              <label class="form-label small text-muted mb-1">Acct port (UDP)</label>
+              <input name="radius_acct_port" type="number" min="1" max="65535" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ s.radius_acct_port }}">
+            </div>
+            <div class="col-4">
+              <label class="form-label small text-muted mb-1">Default OTP</label>
+              <input name="default_otp" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ s.default_otp }}">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-save me-1"></i>Save connection</button>
+          <p class="small text-muted mt-2 mb-0">Secret &amp; OTP apply immediately. Port changes apply on restart and must match the host-published port.</p>
+        </form>
       </div></div>
     </div>
     <div class="col-lg-6">
       <div class="card glass border-0 h-100"><div class="card-body">
-        <h5 class="mb-3"><i class="bi bi-list-check me-2"></i>Check Point recipe</h5>
-        <ol class="small mb-0 ps-3">
-          <li>SmartConsole → New → Server → RADIUS: host = this server, port {{ cfg.RADIUS_AUTH_PORT }}, secret above.</li>
-          <li>Point Identity Awareness or Remote Access VPN at this RADIUS server.</li>
-          <li>Sign in as a demo user below — groups arrive as <code>Class</code> attributes.</li>
+        <h5 class="text-white mb-3"><i class="bi bi-list-check me-2"></i>Check Point recipe</h5>
+        <ol class="small text-muted mb-0 ps-3">
+          <li class="mb-1">SmartConsole → New → Server → RADIUS: host = this server, port {{ s.radius_auth_port }}, secret above.</li>
+          <li class="mb-1">Point Identity Awareness or Remote Access VPN at this RADIUS server.</li>
+          <li class="mb-1">Sign in as a demo user below — groups arrive as <code>Class</code> attributes.</li>
           <li>Enable MFA for a user to require the one-time passcode (Access-Challenge).</li>
         </ol>
       </div></div>
@@ -40,7 +53,7 @@
   </div>
 
   <div class="card glass border-0 mt-3"><div class="card-body">
-    <h5 class="mb-3"><i class="bi bi-shield-lock me-2"></i>Per-user MFA</h5>
+    <h5 class="text-white mb-3"><i class="bi bi-shield-lock me-2"></i>Per-user MFA</h5>
     <p class="small text-muted">Users authenticate with their directory password. Turn on MFA to require a one-time passcode.</p>
     <div class="small text-muted row g-2 px-1 mb-1 d-none d-md-flex">
       <div class="col-md-3">User</div><div class="col-md-4">Groups</div>
@@ -57,7 +70,7 @@
       <div class="col-md-2"><div class="form-check form-switch">
         <input class="form-check-input" type="checkbox" name="mfa" {% if a and a.mfa %}checked{% endif %}></div></div>
       <div class="col-md-2"><input class="form-control form-control-sm bg-dark text-white border-secondary"
-        name="otp" value="{{ a.otp if a and a.otp else default_otp }}"></div>
+        name="otp" value="{{ a.otp if a and a.otp else s.default_otp }}"></div>
       <div class="col-md-1 text-end"><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
     </form>
     {% endfor %}

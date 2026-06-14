@@ -12,7 +12,6 @@ from sqlalchemy import inspect
 
 from app import create_app
 from app.utils.models import db
-from app.utils.config_manager import config_manager
 from app.services import radius_server, tacacs_server
 
 
@@ -36,12 +35,11 @@ def main():
     app = create_app(init_db=False)
     if not _wait_for_schema(app):
         print("AAA runner: schema not ready after wait — starting anyway.", flush=True)
-    radius_server.start(app)
-    tacacs_server.start(app)
+    rad_auth, rad_acct = radius_server.start(app)
+    tac_port = tacacs_server.start(app)
     print(
-        f"AAA protocols up — RADIUS auth :{config_manager.RADIUS_AUTH_PORT}/udp "
-        f"acct :{config_manager.RADIUS_ACCT_PORT}/udp ; "
-        f"TACACS+ :{config_manager.TACACS_PORT}/tcp",
+        f"AAA protocols up — RADIUS auth :{rad_auth}/udp acct :{rad_acct}/udp ; "
+        f"TACACS+ :{tac_port}/tcp",
         flush=True,
     )
     while True:  # daemon server threads do the work

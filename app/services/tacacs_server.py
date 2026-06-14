@@ -8,9 +8,11 @@ wire protocol directly:
     actually gets an admin shell on Gaia
   * Accounting: SUCCESS + logged
 
-Authenticates against the shared `User` directory. Runs in the protocol process
-(app.services.runner), binding an unprivileged port (default 4949) that compose
-maps to host 49, so the container stays non-root.
+Authenticates against the shared `User` directory. The shared secret and bind
+port come from `get_setting` (portal-editable); the secret is resolved once per
+connection inside an app context and threaded through the handlers. Runs in the
+protocol process (app.services.runner), binding an unprivileged port (default
+4949) that compose maps to host 49, so the container stays non-root.
 """
 import hashlib
 import socket
@@ -19,7 +21,7 @@ import threading
 
 from app.utils.config_manager import config_manager
 from app.utils.models import db, User
-from app.utils.models_aaa import log_event
+from app.utils.models_aaa import get_setting, log_event
 
 # Packet types
 TAC_AUTHEN, TAC_AUTHOR, TAC_ACCT = 0x01, 0x02, 0x03
@@ -28,10 +30,6 @@ FLAG_UNENCRYPTED = 0x01
 ST_PASS, ST_FAIL, ST_GETDATA, ST_GETUSER, ST_GETPASS, ST_RESTART, ST_ERROR = 1, 2, 3, 4, 5, 6, 7
 AT_ASCII, AT_PAP, AT_CHAP = 1, 2, 3
 REPLY_NOECHO = 0x01
-
-
-def _key() -> bytes:
-    return config_manager.TACACS_SECRET.encode()
 
 
 def _crypt(session_id: int, key: bytes, version: int, seq_no: int, body: bytes) -> bytes:
@@ -60,7 +58,7 @@ def _recvn(conn, n: int) -> bytes:
 
 def _read_packet(conn, key):
     """Read one TACACS+ packet; return (version, type, seq, flags, session_id, body)
-    with the body already deobfuscated, or None on a closed/short connection."""
+    with the body deobfuscated, or None on a closed/short connection."""
     hdr = _recvn(conn, 12)
     if len(hdr) < 12:
         return None
@@ -81,23 +79,19 @@ def _send(conn, version, type_, seq, flags, session_id, key, body):
 
 # ---- body codecs ---------------------------------------------------------
 def _parse_authen_start(b):
-    action, priv, atype, service = b[0], b[1], b[2], b[3]
+    atype = b[2]
     ul, pl, ral, dl = b[4], b[5], b[6], b[7]
     o = 8
     user = b[o:o + ul]; o += ul
-    o += pl  # port
-    o += ral  # rem_addr
+    o += pl + ral  # skip port, rem_addr
     data = b[o:o + dl]
     return atype, user.decode(errors="replace"), data
 
 
 def _parse_authen_continue(b):
     uml = struct.unpack("!H", b[0:2])[0]
-    dl = struct.unpack("!H", b[2:4])[0]
-    o = 5  # skip flags byte
-    user_msg = b[o:o + uml]; o += uml
-    data = b[o:o + dl]
-    return user_msg.decode(errors="replace"), data
+    o = 5  # skip data_len(2) + flags(1)
+    return b[o:o + uml].decode(errors="replace")
 
 
 def _authen_reply_body(status, server_msg="", noecho=False, data=b""):
@@ -108,9 +102,9 @@ def _authen_reply_body(status, server_msg="", noecho=False, data=b""):
 
 def _author_reply_body(args):
     arg_bytes = [a.encode() for a in args]
-    body = bytes([1, len(arg_bytes)])            # status=PASS_ADD, arg_cnt
-    body += struct.pack("!H", 0) + struct.pack("!H", 0)  # server_msg_len, data_len
-    body += bytes(len(a) for a in arg_bytes)     # per-arg lengths
+    body = bytes([1, len(arg_bytes)])                        # status=PASS_ADD, arg_cnt
+    body += struct.pack("!H", 0) + struct.pack("!H", 0)      # server_msg_len, data_len
+    body += bytes(len(a) for a in arg_bytes)
     for a in arg_bytes:
         body += a
     return body
@@ -142,8 +136,7 @@ def _log(app, kind, username, nas, result, detail=""):
 
 
 # ---- exchange handlers ---------------------------------------------------
-def _handle_authen(conn, app, version, sid, seq, flags, body, nas):
-    key = _key()
+def _handle_authen(conn, app, key, version, sid, seq, flags, body, nas):
     atype, user, data = _parse_authen_start(body)
 
     if atype == AT_PAP:
@@ -161,52 +154,53 @@ def _handle_authen(conn, app, version, sid, seq, flags, body, nas):
             if not pkt:
                 return
             seq = pkt[2]
-            user, _ = _parse_authen_continue(pkt[5])
+            user = _parse_authen_continue(pkt[5])
         _send(conn, version, TAC_AUTHEN, seq + 1, flags, sid, key,
               _authen_reply_body(ST_GETPASS, "Password: ", noecho=True))
         pkt = _read_packet(conn, key)
         if not pkt:
             return
         seq = pkt[2]
-        password, _ = _parse_authen_continue(pkt[5])
+        password = _parse_authen_continue(pkt[5])
         ok = _verify(app, user, password)
         _send(conn, version, TAC_AUTHEN, seq + 1, flags, sid, key,
               _authen_reply_body(ST_PASS if ok else ST_FAIL))
         _log(app, "auth", user, nas, "accept" if ok else "reject", "ascii")
         return
 
-    # CHAP / others not supported in this simulator.
     _send(conn, version, TAC_AUTHEN, seq + 1, flags, sid, key,
           _authen_reply_body(ST_ERROR, "Unsupported authen type"))
     _log(app, "auth", user, nas, "error", f"unsupported authen_type {atype}")
 
 
-def _handle_author(conn, app, version, sid, seq, flags, body, nas):
+def _handle_author(conn, app, key, version, sid, seq, flags, body, nas):
     user = _parse_author_user(body)
     # Permissive demo authorization: grant admin so Gaia assigns the admin role.
-    _send(conn, version, TAC_AUTHOR, seq + 1, flags, sid, _key(),
+    _send(conn, version, TAC_AUTHOR, seq + 1, flags, sid, key,
           _author_reply_body(["priv-lvl=15", "shell:roles=adminRole"]))
     _log(app, "author", user, nas, "accept", "priv-lvl=15")
 
 
-def _handle_acct(conn, app, version, sid, seq, flags, body, nas):
-    _send(conn, version, TAC_ACCT, seq + 1, flags, sid, _key(), _acct_reply_body())
+def _handle_acct(conn, app, key, version, sid, seq, flags, body, nas):
+    _send(conn, version, TAC_ACCT, seq + 1, flags, sid, key, _acct_reply_body())
     _log(app, "acct", "", nas, "start", "accounting")
 
 
 def _handle_connection(conn, addr, app):
     nas = addr[0]
     try:
-        pkt = _read_packet(conn, _key())
+        with app.app_context():
+            key = get_setting("tacacs_secret").encode()
+        pkt = _read_packet(conn, key)
         if not pkt:
             return
         version, type_, seq, flags, sid, body = pkt
         if type_ == TAC_AUTHEN:
-            _handle_authen(conn, app, version, sid, seq, flags, body, nas)
+            _handle_authen(conn, app, key, version, sid, seq, flags, body, nas)
         elif type_ == TAC_AUTHOR:
-            _handle_author(conn, app, version, sid, seq, flags, body, nas)
+            _handle_author(conn, app, key, version, sid, seq, flags, body, nas)
         elif type_ == TAC_ACCT:
-            _handle_acct(conn, app, version, sid, seq, flags, body, nas)
+            _handle_acct(conn, app, key, version, sid, seq, flags, body, nas)
     except Exception as exc:  # never let one bad client kill the server
         try:
             _log(app, "auth", "", nas, "error", str(exc))
@@ -219,10 +213,10 @@ def _handle_connection(conn, addr, app):
             pass
 
 
-def _accept_loop(app):
+def _accept_loop(app, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((config_manager.AAA_BIND, config_manager.TACACS_PORT))
+    sock.bind((config_manager.AAA_BIND, port))
     sock.listen(50)
     while True:
         try:
@@ -233,4 +227,7 @@ def _accept_loop(app):
 
 
 def start(app):
-    threading.Thread(target=_accept_loop, args=(app,), daemon=True, name="tacacs").start()
+    with app.app_context():
+        port = int(get_setting("tacacs_port"))
+    threading.Thread(target=_accept_loop, args=(app, port), daemon=True, name="tacacs").start()
+    return port

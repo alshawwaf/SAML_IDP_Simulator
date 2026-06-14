@@ -2,7 +2,9 @@
 
 Authenticates against the shared `User` directory and returns the user's group
 names as Class attributes. MFA users get an Access-Challenge for a one-time
-passcode (AaaUserAuth.otp, else the demo default). Events go to AaaLog.
+passcode. Connection settings (shared secret, ports, default OTP) come from
+`get_setting` (portal-editable, persisted) — secret/OTP are read live per
+request; ports are bound at startup.
 
 Runs inside the protocol process (app.services.runner), NOT the gunicorn web
 workers — only one process can bind a UDP port. Each server thread holds one
@@ -18,7 +20,7 @@ from pyrad.dictionary import Dictionary
 
 from app.utils.config_manager import config_manager
 from app.utils.models import db, User
-from app.utils.models_aaa import AaaUserAuth, log_event
+from app.utils.models_aaa import AaaUserAuth, get_setting, log_event
 
 _DICT = Dictionary(os.path.join(os.path.dirname(__file__), "radius_dictionary"))
 _challenges: dict[str, str] = {}
@@ -30,14 +32,14 @@ def _text(v):
 
 
 def _secret() -> bytes:
-    return config_manager.RADIUS_SECRET.encode()
+    return get_setting("radius_secret").encode()
 
 
 def _accept(reply, user):
     reply.code = packet.AccessAccept
     for group in (user.group_names or []):
         reply.AddAttribute("Class", group.encode())
-    reply.AddAttribute("Reply-Message", "Authenticated by PoV Integration Toolkit")
+    reply.AddAttribute("Reply-Message", "Authenticated by the Identity & Access simulator")
 
 
 def handle_auth(data, addr):
@@ -57,7 +59,7 @@ def handle_auth(data, addr):
             pending = _challenges.pop(state, None)
         user = User.query.filter_by(username=username).first() if username else None
         aaa = AaaUserAuth.query.filter_by(user_id=user.id).first() if user else None
-        expected = aaa.otp if (aaa and aaa.otp) else config_manager.AAA_DEFAULT_OTP
+        expected = aaa.otp if (aaa and aaa.otp) else get_setting("default_otp")
         if pending == username and password and password == expected:
             _accept(reply, user)
             log_event("radius", "auth", username, nas, "accept", "OTP verified")
@@ -122,8 +124,12 @@ def _serve(app, port, handler, label):
 
 
 def start(app):
-    """Spawn the RADIUS auth + accounting listener threads."""
-    threading.Thread(target=_serve, args=(app, config_manager.RADIUS_AUTH_PORT, handle_auth, "auth"),
+    """Bind the RADIUS auth + accounting listeners (ports read at startup)."""
+    with app.app_context():
+        auth_port = int(get_setting("radius_auth_port"))
+        acct_port = int(get_setting("radius_acct_port"))
+    threading.Thread(target=_serve, args=(app, auth_port, handle_auth, "auth"),
                      daemon=True, name="radius-auth").start()
-    threading.Thread(target=_serve, args=(app, config_manager.RADIUS_ACCT_PORT, handle_acct, "acct"),
+    threading.Thread(target=_serve, args=(app, acct_port, handle_acct, "acct"),
                      daemon=True, name="radius-acct").start()
+    return auth_port, acct_port

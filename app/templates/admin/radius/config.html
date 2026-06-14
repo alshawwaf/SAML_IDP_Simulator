@@ -52,33 +52,32 @@
     <h5 class="text-white mb-3"><i class="bi bi-shield-lock me-2"></i>Per-user MFA</h5>
     <p class="small text-muted">Users authenticate with their directory password. Turn on MFA to require a TOTP code from an authenticator app (Microsoft / Google Authenticator).</p>
     <div class="small text-muted row g-2 px-1 mb-1 d-none d-md-flex">
-      <div class="col-md-3">User</div><div class="col-md-4">Groups</div>
-      <div class="col-md-2">MFA</div><div class="col-md-2">Authenticator</div><div class="col-md-1"></div>
+      <div class="col-md-3">User</div>
+      <div class="col-md-5">Groups</div>
+      <div class="col-md-2 text-center">MFA</div>
+      <div class="col-md-2 text-center">Authenticator</div>
     </div>
     {% for u in users %}
     {% set a = aaa.get(u.id) %}
     <div class="row g-2 align-items-center border-top border-secondary border-opacity-25 py-2">
-      <form method="post" action="{{ url_for('radius.set_mfa') }}" class="col-md-7 row g-2 align-items-center m-0">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="username" value="{{ u.username }}">
-        <div class="col-md-5 small text-white">{{ u.username }}</div>
-        <div class="col-md-7 small">{% for g in u.group_names %}<span class="badge bg-secondary me-1">{{ g }}</span>{% endfor %}</div>
-      </form>
-      <div class="col-md-2">
-        <form method="post" action="{{ url_for('radius.set_mfa') }}" class="d-flex align-items-center gap-2 m-0">
+      <div class="col-md-3 small text-white">{{ u.username }}</div>
+      <div class="col-md-5 small">{% for g in u.group_names %}<span class="badge bg-secondary me-1 mb-1">{{ g }}</span>{% endfor %}</div>
+      <div class="col-md-2 d-flex justify-content-center">
+        <form method="post" action="{{ url_for('radius.set_mfa') }}" class="m-0">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="username" value="{{ u.username }}">
           <div class="form-check form-switch m-0">
-            <input class="form-check-input" type="checkbox" name="mfa" onchange="this.form.submit()" {% if a and a.mfa %}checked{% endif %}>
+            <input class="form-check-input" type="checkbox" role="switch" name="mfa" onchange="this.form.submit()" {% if a and a.mfa %}checked{% endif %}>
           </div>
         </form>
       </div>
-      <div class="col-md-2">
+      <div class="col-md-2 d-flex justify-content-center">
         {% if a and a.mfa %}
-        <button type="button" class="btn btn-outline-info btn-sm" onclick="openTotp('{{ u.username }}')"><i class="bi bi-qr-code me-1"></i>Setup</button>
-        {% else %}<span class="small text-muted">—</span>{% endif %}
+        <button type="button" class="btn btn-outline-info btn-sm d-inline-flex align-items-center gap-1" onclick="openTotp('{{ u.username }}')">
+          <i class="bi bi-qr-code"></i><span>Set up</span>
+        </button>
+        {% else %}<span class="text-muted">—</span>{% endif %}
       </div>
-      <div class="col-md-1"></div>
     </div>
     {% endfor %}
   </div></div>

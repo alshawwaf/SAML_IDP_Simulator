@@ -1,48 +1,46 @@
+# Dokploy-ready Compose — deploy straight from GitHub, no pasting.
+#
+# In Dokploy: create a "Compose" service, Provider = GitHub, pick this repo +
+# branch, set the Compose Path to "docker-compose.yml", then in the Environment
+# tab set IDP_DOMAIN (and any secrets), and Deploy. Turn on Autodeploy so a
+# `git push` redeploys. Set the web domain via IDP_DOMAIN below — everything
+# else has a safe default.
+#
+# (For a plain `docker compose up` outside Dokploy: drop the `labels:` block and
+#  the external `dokploy-network`, and publish the web port, e.g. add
+#  `- "5000:5000"` under `ports:`.)
 services:
   saml-idp:
     build: .
-    image: ghcr.io/alshawwaf/saml_idp_simulator:latest
     container_name: identity-access-simulator
-    # Static defaults baked in here so a fresh deploy works out-of-the-box.
-    # Override any of these via the Dokploy "Environment" tab.
-    #
-    # IMPORTANT: do NOT hardcode toggles like ENABLE_SCIM here. Listing a
-    # value in this `environment:` block locks it in for the container in
-    # some Dokploy versions and prevents the env tab from overriding.
-    # Toggles that operators should be able to flip live only in the env tab.
+    restart: unless-stopped
     environment:
       - IDP_PORT=5000
       - IDP_HOST=0.0.0.0
       - ENABLE_SSL=false
-      - FLASK_DEBUG=0
-      - CERT_PATH=/app/app/certs/idp-cert.pem
-      - KEY_PATH=/app/app/certs/idp-key.pem
-      # SECRET_KEY intentionally NOT set here. Set it in the Dokploy Environment
-      # tab to a unique random value (e.g. `openssl rand -base64 48`). If left
-      # unset, the app generates one on first boot and persists it to the data
-      # volume (/app/data/.secret-key) so it stays stable across redeploys.
-      - ADMIN_USERNAME=admin@cpdemo.ca
-      # ADMIN_PASSWORD intentionally NOT set here so the app uses its baked-in
-      # default 'CpDemo2026' on first boot. The admin should change it from
-      # Settings → Change Admin Password after first login (persisted to
-      # /app/data/.admin-password-hash on the saml_idp_data volume). To lock
-      # in a specific value at deploy time instead, add ADMIN_PASSWORD to the
-      # Dokploy Environment tab.
-      - IDP_ENTITY_ID=https://idp.cpdemo.ca
-      - SSO_SERVICE_URL=https://idp.cpdemo.ca/sso
+      # Set these in Dokploy's Environment tab (do NOT hardcode secrets here):
+      #   IDP_DOMAIN=idp.yourlab.example   -> used by the Traefik labels below
+      #   ADMIN_PASSWORD=...               (else the documented default CpDemo2026)
+      #   SECRET_KEY=...                   (else auto-generated + persisted to the volume)
+      #   RADIUS_SECRET / TACACS_SECRET    (else the demo default; also editable in-app)
     # RADIUS (UDP) and TACACS+ can't be HTTP-routed by Traefik, so publish them
-    # on the host directly. TACACS+ uses the standard host port 49 mapped to the
-    # container's unprivileged 4949. Open these in the host firewall.
+    # on the host. Open these in the host firewall.
     ports:
       - "1812:1812/udp"
       - "1813:1813/udp"
       - "49:4949/tcp"
+    # Web UI: routed by Dokploy's Traefik to the domain set in IDP_DOMAIN.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.idp.rule=Host(`${IDP_DOMAIN}`)"
+      - "traefik.http.routers.idp.entrypoints=websecure"
+      - "traefik.http.routers.idp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.idp.loadbalancer.server.port=5000"
     volumes:
-      - saml_idp_data:/app/data
+      - saml_idp_data:/app/data       # keep these names to preserve existing data
       - saml_idp_certs:/app/app/certs
     networks:
       - dokploy-network
-    restart: unless-stopped
 
 volumes:
   saml_idp_data:

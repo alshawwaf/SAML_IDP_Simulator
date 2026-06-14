@@ -79,9 +79,6 @@
                 </div>
               </td>
             </tr>
-            <tr class="border-bottom border-secondary border-opacity-25" id="test-result-{{ target.id }}" style="display:none;">
-              <td colspan="5" class="px-4 py-2"><div class="test-output small"></div></td>
-            </tr>
             {% endfor %}
           </tbody>
         </table>
@@ -136,13 +133,32 @@
   {% endif %}
 </div>
 
+<!-- Connection-test result modal -->
+<div class="modal fade" id="scimTestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-broadcast me-2"></i>Connection test — <span id="scimTestName"></span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="scimTestStatus" class="mb-3"></div>
+        <pre id="scimTestBody" class="xml-content small m-0" style="white-space:pre-wrap;word-break:break-word"></pre>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button></div>
+    </div>
+  </div>
+</div>
+
 <script>
 function testTarget(button) {
   const targetId = button.dataset.targetId;
-  const resultRow = document.getElementById(`test-result-${targetId}`);
-  const out = resultRow.querySelector('.test-output');
-  resultRow.style.display = '';
-  out.innerHTML = '<span class="text-muted">Testing…</span>';
+  document.getElementById('scimTestName').textContent = button.dataset.targetName || '';
+  const statusEl = document.getElementById('scimTestStatus');
+  const bodyEl = document.getElementById('scimTestBody');
+  statusEl.innerHTML = '<span class="text-muted">Testing…</span>';
+  bodyEl.textContent = '';
+  new bootstrap.Modal(document.getElementById('scimTestModal')).show();
 
   const fd = new FormData();
   fd.append('csrf_token', document.querySelector('input[name=csrf_token]').value);
@@ -150,16 +166,20 @@ function testTarget(button) {
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
-        out.innerHTML = `<span class="badge bg-success me-2">✓ ${data.status_code}</span>
-          <code class="small text-muted">${escapeHtml((data.snippet || '').substring(0, 200))}</code>`;
+        statusEl.innerHTML = `<span class="badge bg-success">✓ HTTP ${data.status_code}</span><span class="small text-muted ms-2">Reachable</span>`;
       } else {
-        out.innerHTML = `<span class="badge bg-danger me-2">✗ ${data.status_code || 'ERR'}</span>
-          <code class="small text-danger">${escapeHtml(data.error || data.snippet || 'Unknown error')}</code>`;
+        statusEl.innerHTML = `<span class="badge bg-danger">✗ ${escapeHtml(String(data.status_code || 'ERROR'))}</span><span class="small text-danger ms-2">${escapeHtml(data.error || 'Request failed')}</span>`;
       }
+      bodyEl.textContent = prettyJson(data.snippet || data.error || '(no response body)');
     })
     .catch(err => {
-      out.innerHTML = `<span class="text-danger small">Request failed: ${escapeHtml(err.toString())}</span>`;
+      statusEl.innerHTML = `<span class="badge bg-danger">✗ ERROR</span>`;
+      bodyEl.textContent = err.toString();
     });
+}
+
+function prettyJson(s) {
+  try { return JSON.stringify(JSON.parse(s), null, 2); } catch (e) { return s; }
 }
 
 function escapeHtml(s) {

@@ -1,17 +1,16 @@
-# Dokploy-ready Compose — deploy straight from GitHub, no pasting.
-#
-# In Dokploy: create a "Compose" service, Provider = GitHub, pick this repo +
-# branch, set the Compose Path to "docker-compose.yml", then in the Environment
-# tab set IDP_DOMAIN (and any secrets), and Deploy. Turn on Autodeploy so a
-# `git push` redeploys. Set the web domain via IDP_DOMAIN below — everything
-# else has a safe default.
+# Dokploy-ready Compose. Builds from the repo's git URL, so it works whether you
+# PASTE it (Provider = Raw) or point Dokploy at this repo (Provider = GitHub,
+# Compose Path = docker-compose.yml). Set IDP_DOMAIN (and any secrets) in the
+# Environment tab, turn on Autodeploy, and Deploy.
 #
 # (For a plain `docker compose up` outside Dokploy: drop the `labels:` block and
 #  the external `dokploy-network`, and publish the web port, e.g. add
 #  `- "5000:5000"` under `ports:`.)
 services:
   saml-idp:
-    build: .
+    build:
+      context: https://github.com/alshawwaf/SAML_IDP_Simulator.git
+      dockerfile: Dockerfile
     container_name: identity-access-simulator
     restart: unless-stopped
     environment:

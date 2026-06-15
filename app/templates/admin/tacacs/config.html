@@ -33,11 +33,12 @@
       <div class="card glass border-0 h-100"><div class="card-body">
         <h5 class="text-white mb-3"><i class="bi bi-list-check me-2"></i>Gaia recipe</h5>
         <ol class="small text-muted mb-0 ps-3">
-          <li class="mb-1">Gaia Portal → Authentication → TACACS+: add server = this host, port 49, secret above.</li>
-          <li class="mb-1">Map a role (the simulator returns <code>priv-lvl=15</code> for admin access).</li>
-          <li class="mb-1">SSH/login to Gaia as a demo user below with their directory password.</li>
-          <li>ASCII and PAP logins are supported; watch them in the live log.</li>
+          <li class="mb-1">Gaia Portal → User Management → Authentication Servers → TACACS+: add this host, port 49, secret above.</li>
+          <li class="mb-1"><strong>Create a role named <code>TACP-15</code></strong> (clone <code>adminRole</code>). Gaia maps non-local TACACS+ users to <code>TACP-&lt;priv-lvl&gt;</code> — it ignores role-name av-pairs, so <code>priv-lvl</code> is what counts.</li>
+          <li class="mb-1">Members of <code>admins</code> get <code>priv-lvl=15</code> → <code>TACP-15</code> (full); everyone else <code>priv-lvl=0</code> → the default <code>TACP-0</code>.</li>
+          <li>SSH/login to Gaia as a demo user with their directory password — ASCII and PAP both work; watch the live log.</li>
         </ol>
+        <p class="small text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Gaia usernames can't contain dots — use <code>khalid</code>, not <code>jane.doe</code>. Admin groups: <code>admins, superadmins, superusers, administrators</code> (override with <code>GAIA_ADMIN_GROUPS</code>).</p>
       </div></div>
     </div>
   </div>

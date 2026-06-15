@@ -20,7 +20,9 @@ from pyrad.dictionary import Dictionary
 
 from app.utils.config_manager import config_manager
 from app.utils.models import db, User
-from app.utils.models_aaa import AaaUserAuth, get_setting, log_event, verify_totp
+from app.utils.models_aaa import (
+    AaaUserAuth, gaia_radius_role, get_setting, log_event, verify_totp,
+)
 
 _DICT = Dictionary(os.path.join(os.path.dirname(__file__), "radius_dictionary"))
 _challenges: dict[str, str] = {}
@@ -39,6 +41,12 @@ def _accept(reply, user):
     reply.code = packet.AccessAccept
     for group in (user.group_names or []):
         reply.AddAttribute("Class", group.encode())
+    # Check Point Gaia role-based administration (vendor 2620). Gaia reads these
+    # VSAs to assign the admin's role; non-Gaia NAS ignore unknown VSAs, so it's
+    # always safe to send them. Role is decided by the user's directory groups.
+    role, superuser = gaia_radius_role(user)
+    reply.AddAttribute("CP-Gaia-User-Role", role)
+    reply.AddAttribute("CP-Gaia-SuperUser-Access", superuser)
     reply.AddAttribute("Reply-Message", "Authenticated by the Identity & Access simulator")
 
 

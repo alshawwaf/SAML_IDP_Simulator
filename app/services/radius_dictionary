@@ -29,3 +29,15 @@ VALUE	Service-Type		Administrative-User	6
 VALUE	Acct-Status-Type	Start			1
 VALUE	Acct-Status-Type	Stop			2
 VALUE	Acct-Status-Type	Interim-Update		3
+
+# Check Point Gaia role-based administration (vendor 2620). Gaia reads these
+# VSAs from the Access-Accept to assign an admin's role:
+#   CP-Gaia-User-Role        role name(s); MUST match a role that exists in Gaia
+#                            (adminRole / monitorRole are built in).
+#   CP-Gaia-SuperUser-Access 1 = grant expert-mode / shell (read-write) access.
+VENDOR		Checkpoint	2620
+
+BEGIN-VENDOR	Checkpoint
+ATTRIBUTE	CP-Gaia-User-Role		229	string
+ATTRIBUTE	CP-Gaia-SuperUser-Access	230	integer
+END-VENDOR	Checkpoint

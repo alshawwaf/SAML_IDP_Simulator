@@ -39,11 +39,12 @@
       <div class="card glass border-0 h-100"><div class="card-body">
         <h5 class="text-white mb-3"><i class="bi bi-list-check me-2"></i>Check Point recipe</h5>
         <ol class="small text-muted mb-0 ps-3">
-          <li class="mb-1">SmartConsole → New → Server → RADIUS: host = this server, port {{ s.radius_auth_port }}, secret above.</li>
-          <li class="mb-1">Point Identity Awareness or Remote Access VPN at this RADIUS server.</li>
-          <li class="mb-1">Sign in as a demo user below — groups arrive as <code>Class</code> attributes.</li>
-          <li>Enable MFA for a user, scan the QR with an authenticator app, and the login is challenged for the rotating code.</li>
+          <li class="mb-1"><strong>Gateway / VPN:</strong> SmartConsole → New → Server → RADIUS (host = this server, port {{ s.radius_auth_port }}, secret above), then point Identity Awareness or Remote Access VPN at it. Groups arrive as <code>Class</code> attributes.</li>
+          <li class="mb-1"><strong>Gaia OS admin:</strong> Gaia Portal → User Management → Authentication Servers → add this RADIUS server. The simulator returns Check Point VSAs (vendor 2620), so roles map automatically — nothing to create on Gaia.</li>
+          <li class="mb-1">Members of <code>admins</code> get <code>CP-Gaia-User-Role=adminRole</code> + <code>SuperUser-Access=1</code> (full read/write); everyone else gets <code>monitorRole</code> (read-only). Both are built-in Gaia roles.</li>
+          <li>Enable MFA below for VPN/portal logins. <em>Skip it for Gaia OS admin</em> — Gaia's login doesn't answer the RADIUS Access-Challenge.</li>
         </ol>
+        <p class="small text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Gaia usernames can't contain dots — use a demo user like <code>khalid</code>, not <code>jane.doe</code>. Admin groups: <code>admins, superadmins, superusers, administrators</code> (override with <code>GAIA_ADMIN_GROUPS</code>).</p>
       </div></div>
     </div>
   </div>

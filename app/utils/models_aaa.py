@@ -6,6 +6,7 @@ these tables add per-user MFA (TOTP), the AAA auth log, and portal-editable
 connection settings. Shared secrets and TOTP secrets are encrypted at rest.
 """
 import io
+import os
 import time
 from datetime import datetime
 
@@ -163,6 +164,40 @@ def totp_info(user, user_auth):
         "code": totp.now(),
         "remaining": totp.interval - int(time.time()) % totp.interval,
     }
+
+
+# --- Check Point Gaia role-based administration ----------------------------
+# A user's Gaia role is decided by directory-group membership: anyone in an
+# "admin" group gets the Gaia admin role, everyone else a read-only role. Tune
+# without code via env vars (comma-separated, case-insensitive for the groups).
+GAIA_ADMIN_GROUPS = {
+    g.strip().lower()
+    for g in os.environ.get(
+        "GAIA_ADMIN_GROUPS", "admins,superadmins,superusers,administrators"
+    ).split(",")
+    if g.strip()
+}
+GAIA_ADMIN_ROLE = os.environ.get("GAIA_ADMIN_ROLE", "adminRole")    # built-in Gaia role
+GAIA_USER_ROLE = os.environ.get("GAIA_USER_ROLE", "monitorRole")    # built-in read-only role
+
+
+def is_gaia_admin(user):
+    """True if the user belongs to a group that should map to a Gaia admin role."""
+    names = {g.lower() for g in (getattr(user, "group_names", None) or [])}
+    return bool(names & GAIA_ADMIN_GROUPS)
+
+
+def gaia_radius_role(user):
+    """(role_name, superuser_int) for the Check Point Gaia RADIUS VSAs
+    (CP-Gaia-User-Role / CP-Gaia-SuperUser-Access)."""
+    return (GAIA_ADMIN_ROLE, 1) if is_gaia_admin(user) else (GAIA_USER_ROLE, 0)
+
+
+def gaia_tacacs_privlvl(user):
+    """Privilege level for Gaia TACACS+. Gaia maps non-local users to a role
+    named TACP-<priv-lvl> (priv-lvl 15 = full admin, 0 = the default TACP-0);
+    it does NOT read role-name av-pairs, so priv-lvl is what matters for Gaia."""
+    return 15 if is_gaia_admin(user) else 0
 
 
 # --- helpers --------------------------------------------------------------

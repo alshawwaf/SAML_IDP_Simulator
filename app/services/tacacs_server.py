@@ -4,8 +4,9 @@ wire protocol directly:
 
   * 12-byte header + MD5 body de/obfuscation (the TACACS+ "encryption")
   * Authentication: ASCII login (Username/Password prompts) and PAP
-  * Authorization: permissive PASS_ADD returning priv-lvl=15 so a demo admin
-    actually gets an admin shell on Gaia
+  * Authorization: PASS_ADD returning priv-lvl gated on directory-group
+    membership — admins get priv-lvl=15 (Gaia maps it to role TACP-15),
+    everyone else priv-lvl=0 (the default TACP-0)
   * Accounting: SUCCESS + logged
 
 Authenticates against the shared `User` directory. The shared secret and bind
@@ -21,7 +22,7 @@ import threading
 
 from app.utils.config_manager import config_manager
 from app.utils.models import db, User
-from app.utils.models_aaa import get_setting, log_event
+from app.utils.models_aaa import gaia_tacacs_privlvl, get_setting, log_event
 
 # Packet types
 TAC_AUTHEN, TAC_AUTHOR, TAC_ACCT = 0x01, 0x02, 0x03
@@ -173,12 +174,27 @@ def _handle_authen(conn, app, key, version, sid, seq, flags, body, nas):
     _log(app, "auth", user, nas, "error", f"unsupported authen_type {atype}")
 
 
+def _author_avpairs(app, username):
+    """Av-pairs to return for `username`, gated on directory-group membership.
+    Gaia maps non-local users to a role named TACP-<priv-lvl> (priv-lvl 15 =
+    full admin), so priv-lvl is the pair that matters for Gaia. shell:roles= /
+    roles= are added for non-Gaia NAS (Aruba, etc.) that read role names."""
+    with app.app_context():
+        try:
+            user = User.query.filter_by(username=username).first()
+            priv = gaia_tacacs_privlvl(user)
+        finally:
+            db.session.remove()
+    role = "adminRole" if priv >= 15 else "monitorRole"
+    return [f"priv-lvl={priv}", f"shell:roles={role}", f"roles={role}"]
+
+
 def _handle_author(conn, app, key, version, sid, seq, flags, body, nas):
     user = _parse_author_user(body)
-    # Permissive demo authorization: grant admin so Gaia assigns the admin role.
+    avpairs = _author_avpairs(app, user)
     _send(conn, version, TAC_AUTHOR, seq + 1, flags, sid, key,
-          _author_reply_body(["priv-lvl=15", "shell:roles=adminRole"]))
-    _log(app, "author", user, nas, "accept", "priv-lvl=15")
+          _author_reply_body(avpairs))
+    _log(app, "author", user, nas, "accept", avpairs[0])
 
 
 def _handle_acct(conn, app, key, version, sid, seq, flags, body, nas):

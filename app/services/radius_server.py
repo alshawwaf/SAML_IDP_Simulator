@@ -50,6 +50,23 @@ def _accept(reply, user):
     reply.AddAttribute("Reply-Message", "Authenticated by the Identity & Access simulator")
 
 
+def _req_meta(pkt, addr):
+    """Pull the interesting attributes out of a RADIUS request for the log modal."""
+    m = {"src": f"{addr[0]}:{addr[1]}", "radius_id": pkt.id}
+    for attr in ("NAS-IP-Address", "NAS-Identifier", "NAS-Port", "NAS-Port-Type",
+                 "Service-Type", "Calling-Station-Id", "Called-Station-Id",
+                 "Acct-Session-Id"):
+        try:
+            if attr in pkt:
+                v = pkt[attr][0]
+                if isinstance(v, (bytes, bytearray)):
+                    v = v.decode("utf-8", "replace")
+                m[attr] = str(v)
+        except Exception:
+            pass
+    return m
+
+
 def handle_auth(data, addr):
     pkt = packet.AuthPacket(packet=data, dict=_DICT, secret=_secret())
     nas = addr[0]
@@ -60,6 +77,7 @@ def handle_auth(data, addr):
         password = ""
     state = binascii.hexlify(pkt["State"][0]).decode() if "State" in pkt else None
     reply = pkt.CreateReply()
+    meta = _req_meta(pkt, addr)
 
     # Second leg of an MFA exchange: the password field carries the TOTP code.
     if state:
@@ -69,18 +87,27 @@ def handle_auth(data, addr):
         aaa = AaaUserAuth.query.filter_by(user_id=user.id).first() if user else None
         if pending == username and verify_totp(aaa, password):
             _accept(reply, user)
-            log_event("radius", "auth", username, nas, "accept", "TOTP verified")
+            role, su = gaia_radius_role(user)
+            log_event("radius", "auth", username, nas, "accept", "TOTP verified",
+                      meta={**meta, "reply": "Access-Accept", "auth_via": "TOTP (second factor)",
+                            "groups": list(user.group_names or []),
+                            "CP-Gaia-User-Role": role, "CP-Gaia-SuperUser-Access": su})
         else:
             reply.code = packet.AccessReject
             reply.AddAttribute("Reply-Message", "Invalid authenticator code")
-            log_event("radius", "auth", username, nas, "reject", "bad TOTP")
+            log_event("radius", "auth", username, nas, "reject", "bad TOTP",
+                      meta={**meta, "reply": "Access-Reject", "auth_via": "TOTP (second factor)",
+                            "reason": "invalid authenticator code"})
         return reply
 
     user = User.query.filter_by(username=username).first()
     if not user or not user.active or not user.check_password(password):
+        reason = ("unknown user" if not user
+                  else "inactive user" if not user.active else "wrong password")
         reply.code = packet.AccessReject
         reply.AddAttribute("Reply-Message", "Invalid credentials")
-        log_event("radius", "auth", username, nas, "reject", "bad credentials")
+        log_event("radius", "auth", username, nas, "reject", "bad credentials",
+                  meta={**meta, "reply": "Access-Reject", "reason": reason})
         return reply
 
     aaa = AaaUserAuth.query.filter_by(user_id=user.id).first()
@@ -91,10 +118,16 @@ def handle_auth(data, addr):
         reply.code = packet.AccessChallenge
         reply.AddAttribute("Reply-Message", "Enter the code from your authenticator app")
         reply.AddAttribute("State", token)
-        log_event("radius", "auth", username, nas, "challenge", "MFA requested")
+        log_event("radius", "auth", username, nas, "challenge", "MFA requested",
+                  meta={**meta, "reply": "Access-Challenge", "mfa": "TOTP code requested",
+                        "groups": list(user.group_names or [])})
     else:
         _accept(reply, user)
-        log_event("radius", "auth", username, nas, "accept", "password OK")
+        role, su = gaia_radius_role(user)
+        log_event("radius", "auth", username, nas, "accept", "password OK",
+                  meta={**meta, "reply": "Access-Accept", "auth_via": "password",
+                        "groups": list(user.group_names or []),
+                        "CP-Gaia-User-Role": role, "CP-Gaia-SuperUser-Access": su})
     return reply
 
 
@@ -105,7 +138,10 @@ def handle_acct(data, addr):
     pkt = packet.AcctPacket(packet=data, dict=_DICT, secret=_secret())
     username = _text(pkt["User-Name"][0]) if "User-Name" in pkt else ""
     status = pkt["Acct-Status-Type"][0] if "Acct-Status-Type" in pkt else 0
-    log_event("radius", "acct", username, addr[0], _ACCT_STATUS.get(status, str(status)), "accounting")
+    status_name = _ACCT_STATUS.get(status, str(status))
+    log_event("radius", "acct", username, addr[0], status_name, "accounting",
+              meta={**_req_meta(pkt, addr), "reply": "Accounting-Response",
+                    "Acct-Status-Type": status_name})
     reply = pkt.CreateReply()
     reply.code = packet.AccountingResponse
     return reply

@@ -156,3 +156,12 @@ def ensure_schema(engine):
         if "totp_secret" not in aaa_cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE aaa_user_auth ADD COLUMN totp_secret TEXT"))
+
+    # aaa_log.meta — JSON of rich per-event attributes (request attrs, reply code,
+    # role/VSAs returned, reject reason) shown in the log detail modal. Older DBs
+    # have rows without it; the column is nullable so they just show no extras.
+    if inspector.has_table("aaa_log"):
+        log_cols = {c["name"] for c in inspector.get_columns("aaa_log")}
+        if "meta" not in log_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE aaa_log ADD COLUMN meta TEXT"))

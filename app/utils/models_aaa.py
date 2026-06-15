@@ -6,6 +6,7 @@ these tables add per-user MFA (TOTP), the AAA auth log, and portal-editable
 connection settings. Shared secrets and TOTP secrets are encrypted at rest.
 """
 import io
+import json
 import os
 import time
 from datetime import datetime
@@ -51,6 +52,16 @@ class AaaLog(db.Model):
     nas = db.Column(db.String(64))
     result = db.Column(db.String(24))     # accept | reject | challenge | start | stop | error
     detail = db.Column(db.String(255))
+    meta = db.Column(db.Text, nullable=True)   # JSON: rich per-event attributes for the detail modal
+
+    def meta_dict(self):
+        """Decoded `meta` (request/reply attributes, role, reason, …) or {}."""
+        if not self.meta:
+            return {}
+        try:
+            return json.loads(self.meta)
+        except Exception:
+            return {}
 
 
 class AaaSetting(db.Model):
@@ -263,11 +274,12 @@ def recent_aaa_logs(proto=None, limit=150):
     return q.limit(limit).all()
 
 
-def log_event(proto, kind, username, nas, result, detail=""):
+def log_event(proto, kind, username, nas, result, detail="", meta=None):
     try:
         db.session.add(AaaLog(
             proto=proto, kind=kind, username=username or "",
             nas=nas or "", result=result, detail=(detail or "")[:255],
+            meta=json.dumps(meta, default=str) if meta else None,
         ))
         db.session.commit()
     except Exception:

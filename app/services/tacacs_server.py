@@ -130,9 +130,9 @@ def _verify(app, username, password) -> bool:
             db.session.remove()
 
 
-def _log(app, kind, username, nas, result, detail=""):
+def _log(app, kind, username, nas, result, detail="", meta=None):
     with app.app_context():
-        log_event("tacacs", kind, username, nas, result, detail)
+        log_event("tacacs", kind, username, nas, result, detail, meta=meta)
         db.session.remove()
 
 
@@ -144,7 +144,10 @@ def _handle_authen(conn, app, key, version, sid, seq, flags, body, nas):
         ok = _verify(app, user, data.decode(errors="replace"))
         _send(conn, version, TAC_AUTHEN, seq + 1, flags, sid, key,
               _authen_reply_body(ST_PASS if ok else ST_FAIL))
-        _log(app, "auth", user, nas, "accept" if ok else "reject", "pap")
+        m = {"authen_type": "PAP", "service": "login"}
+        if not ok:
+            m["reason"] = "unknown user or wrong password"
+        _log(app, "auth", user, nas, "accept" if ok else "reject", "pap", meta=m)
         return
 
     if atype == AT_ASCII:
@@ -166,19 +169,23 @@ def _handle_authen(conn, app, key, version, sid, seq, flags, body, nas):
         ok = _verify(app, user, password)
         _send(conn, version, TAC_AUTHEN, seq + 1, flags, sid, key,
               _authen_reply_body(ST_PASS if ok else ST_FAIL))
-        _log(app, "auth", user, nas, "accept" if ok else "reject", "ascii")
+        m = {"authen_type": "ASCII login", "service": "login"}
+        if not ok:
+            m["reason"] = "unknown user or wrong password"
+        _log(app, "auth", user, nas, "accept" if ok else "reject", "ascii", meta=m)
         return
 
     _send(conn, version, TAC_AUTHEN, seq + 1, flags, sid, key,
           _authen_reply_body(ST_ERROR, "Unsupported authen type"))
-    _log(app, "auth", user, nas, "error", f"unsupported authen_type {atype}")
+    _log(app, "auth", user, nas, "error", f"unsupported authen_type {atype}",
+         meta={"authen_type": f"code {atype} (unsupported)"})
 
 
 def _author_avpairs(app, username):
-    """Av-pairs to return for `username`, gated on directory-group membership.
-    Gaia maps non-local users to a role named TACP-<priv-lvl> (priv-lvl 15 =
-    full admin), so priv-lvl is the pair that matters for Gaia. shell:roles= /
-    roles= are added for non-Gaia NAS (Aruba, etc.) that read role names."""
+    """Return (av-pairs, priv_lvl, local_role) for `username`, gated on directory-
+    group membership. Gaia maps non-local users to a role named TACP-<priv-lvl>
+    (priv-lvl 15 = full admin), so priv-lvl is the pair that matters for Gaia.
+    shell:roles= / roles= are added for non-Gaia NAS (Aruba, etc.)."""
     with app.app_context():
         try:
             user = User.query.filter_by(username=username).first()
@@ -186,20 +193,22 @@ def _author_avpairs(app, username):
         finally:
             db.session.remove()
     role = "adminRole" if priv >= 15 else "monitorRole"
-    return [f"priv-lvl={priv}", f"shell:roles={role}", f"roles={role}"]
+    return [f"priv-lvl={priv}", f"shell:roles={role}", f"roles={role}"], priv, role
 
 
 def _handle_author(conn, app, key, version, sid, seq, flags, body, nas):
     user = _parse_author_user(body)
-    avpairs = _author_avpairs(app, user)
+    avpairs, priv, role = _author_avpairs(app, user)
     _send(conn, version, TAC_AUTHOR, seq + 1, flags, sid, key,
           _author_reply_body(avpairs))
-    _log(app, "author", user, nas, "accept", avpairs[0])
+    _log(app, "author", user, nas, "accept", f"priv-lvl={priv}",
+         meta={"service": "shell", "priv-lvl": priv, "gaia_role": f"TACP-{priv}",
+               "local_role": role, "av-pairs": avpairs})
 
 
 def _handle_acct(conn, app, key, version, sid, seq, flags, body, nas):
     _send(conn, version, TAC_ACCT, seq + 1, flags, sid, key, _acct_reply_body())
-    _log(app, "acct", "", nas, "start", "accounting")
+    _log(app, "acct", "", nas, "start", "accounting", meta={"reply": "SUCCESS"})
 
 
 def _handle_connection(conn, addr, app):

@@ -214,18 +214,33 @@ def _handle_acct(conn, app, key, version, sid, seq, flags, body, nas):
 def _handle_connection(conn, addr, app):
     nas = addr[0]
     try:
+        conn.settimeout(60)  # reap idle single-connection sessions
         with app.app_context():
             key = get_setting("tacacs_secret").encode()
-        pkt = _read_packet(conn, key)
-        if not pkt:
-            return
-        version, type_, seq, flags, sid, body = pkt
-        if type_ == TAC_AUTHEN:
-            _handle_authen(conn, app, key, version, sid, seq, flags, body, nas)
-        elif type_ == TAC_AUTHOR:
-            _handle_author(conn, app, key, version, sid, seq, flags, body, nas)
-        elif type_ == TAC_ACCT:
-            _handle_acct(conn, app, key, version, sid, seq, flags, body, nas)
+        # Loop so one TCP connection can carry several sessions back-to-back —
+        # TACACS+ single-connection mode (RFC 8907 §4.3): the NAS sets the
+        # SINGLE_CONNECT flag and reuses the socket for authentication AND
+        # authorization. Some NAS (incl. Check Point Gaia) authorize the shell on
+        # that same connection; closing after the first packet would silently drop
+        # the authorization, so the user lands on the NAS's default role. In the
+        # classic one-session-per-connection mode the client closes after its
+        # session, so the next read returns None and the loop ends. Replies echo
+        # the request flags, so SINGLE_CONNECT is acknowledged automatically.
+        while True:
+            pkt = _read_packet(conn, key)
+            if not pkt:
+                return
+            version, type_, seq, flags, sid, body = pkt
+            if type_ == TAC_AUTHEN:
+                _handle_authen(conn, app, key, version, sid, seq, flags, body, nas)
+            elif type_ == TAC_AUTHOR:
+                _handle_author(conn, app, key, version, sid, seq, flags, body, nas)
+            elif type_ == TAC_ACCT:
+                _handle_acct(conn, app, key, version, sid, seq, flags, body, nas)
+            else:
+                return
+    except (socket.timeout, OSError):
+        pass  # idle/closed connection — normal end of a single-connect session
     except Exception as exc:  # never let one bad client kill the server
         try:
             _log(app, "auth", "", nas, "error", str(exc))

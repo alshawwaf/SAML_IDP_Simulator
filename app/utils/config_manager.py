@@ -131,6 +131,13 @@ class ConfigManager:
         self.TACACS_PORT = int(os.getenv("TACACS_PORT", 4949))
         self.AAA_DEFAULT_OTP = os.getenv("AAA_DEFAULT_OTP", "123456")
         self.AAA_BIND = os.getenv("AAA_BIND", "0.0.0.0")
+        # The address gateways / Gaia point at. RADIUS (UDP) and TACACS+ reach
+        # the container on the HOST's public IP, NOT the Traefik web domain — so
+        # the portal shows the reachable address. Blank => auto-detect at runtime
+        # (overridable in-portal); set PUBLIC_HOST to pin it for NAT / offline
+        # labs. TACACS_PUBLIC_PORT is the host-side port (compose maps 49->4949).
+        self.PUBLIC_HOST = os.getenv("PUBLIC_HOST", "")
+        self.TACACS_PUBLIC_PORT = int(os.getenv("TACACS_PUBLIC_PORT", 49))
 
     def effective_entity_id(self):
         """The Entity ID to advertise. Explicit env var wins; otherwise derive

@@ -418,12 +418,14 @@ def create_app(init_db=True):
         from app.routes.admin import admin_bp
         from app.routes.radius import radius_bp
         from app.routes.tacacs import tacacs_bp
+        from app.routes.aaa import aaa_bp
 
         app.register_blueprint(metadata_bp)
         app.register_blueprint(auth_bp)
         app.register_blueprint(admin_bp)
         app.register_blueprint(radius_bp)
         app.register_blueprint(tacacs_bp)
+        app.register_blueprint(aaa_bp)
 
         # SP-initiated SSO may arrive via the HTTP-POST binding (AuthnRequest in
         # a form with no Flask CSRF token). Exempt just the /sso view; /login

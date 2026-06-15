@@ -7,6 +7,43 @@
     <a href="{{ url_for('tacacs.log') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-journal-text me-1"></i>Live log</a>
   </div>
 
+  <div class="card glass border-0 mb-3" id="reachCard" data-endpoint-url="{{ url_for('aaa.endpoint') }}">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+        <h5 class="text-white mb-0"><i class="bi bi-broadcast-pin me-2"></i>How to reach this server</h5>
+        <button id="reachRefresh" class="btn btn-outline-light btn-sm" type="button"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+      </div>
+      <p class="small text-muted mb-2">TACACS+ is TCP and bypasses the web domain — point Gaia at the host's public IP below, <strong>not</strong> <code>{{ request.host }}</code>.</p>
+
+      <div class="input-group input-group-sm mb-2" style="max-width:520px">
+        <span class="input-group-text bg-dark text-muted border-secondary">Address</span>
+        <input id="reachHost" type="text" readonly class="form-control bg-dark text-white border-secondary fw-bold" value="{{ endpoint_host or '' }}" placeholder="detecting…">
+        <button class="btn btn-outline-secondary copybtn" type="button" data-copy="#reachHost" title="Copy"><i class="bi bi-clipboard"></i></button>
+        <span id="reachSource" class="input-group-text bg-dark border-secondary small text-muted">{{ endpoint_source }}</span>
+      </div>
+
+      <div class="small text-muted mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-secondary" style="min-width:84px">Server · TCP</span>
+          <code id="epSrv" class="reach-ep" data-port="{{ tacacs_public_port }}">{{ endpoint_host or '&lt;host&gt;' }}:{{ tacacs_public_port }}</code>
+          <button class="btn btn-outline-secondary btn-sm py-0 copybtn" data-copy="#epSrv" type="button"><i class="bi bi-clipboard"></i></button>
+        </div>
+      </div>
+
+      <form method="post" action="{{ url_for('aaa.set_public_host') }}" class="row g-2 align-items-end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="return_to" value="tacacs">
+        <div class="col-auto">
+          <label class="form-label small text-muted mb-1">Override address <span class="text-secondary">(blank = auto-detect)</span></label>
+          <input name="public_host" type="text" style="max-width:300px" class="form-control form-control-sm bg-dark text-white border-secondary" value="{{ endpoint_host if endpoint_source == 'configured' else '' }}" placeholder="e.g. 203.0.113.10 or tacacs.lab.example">
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-outline-light btn-sm" type="submit"><i class="bi bi-pin-angle me-1"></i>Pin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="row g-3">
     <div class="col-lg-6">
       <div class="card glass border-0 h-100"><div class="card-body">
@@ -57,4 +94,8 @@
     </table></div>
   </div></div>
 </div>
+
+<script>
+{% include "admin/_reach_card.js" %}
+</script>
 {% endblock %}

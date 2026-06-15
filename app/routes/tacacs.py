@@ -6,7 +6,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from app.routes.admin import admin_required
 from app.utils.models import User
-from app.utils.models_aaa import recent_aaa_logs, get_setting, set_setting
+from app.utils.config_manager import config_manager
+from app.utils.models_aaa import recent_aaa_logs, get_setting, set_setting, public_endpoint
 from app.utils.activity import record
 
 tacacs_bp = Blueprint('tacacs', __name__, url_prefix='/admin/tacacs')
@@ -19,7 +20,10 @@ _KEYS = ("tacacs_secret", "tacacs_port")
 def config():
     users = User.query.order_by(User.username).all()
     s = {k: get_setting(k) for k in _KEYS}
-    return render_template('admin/tacacs/config.html', users=users, s=s)
+    host, source = public_endpoint(detect=False)  # instant; JS fills if unknown
+    return render_template('admin/tacacs/config.html', users=users, s=s,
+                           endpoint_host=host, endpoint_source=source,
+                           tacacs_public_port=config_manager.TACACS_PUBLIC_PORT)
 
 
 @tacacs_bp.route('/settings', methods=['POST'])

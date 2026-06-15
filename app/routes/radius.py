@@ -7,7 +7,7 @@ from app.routes.admin import admin_required
 from app.utils.models import db, User
 from app.utils.models_aaa import (
     AaaUserAuth, recent_aaa_logs, get_setting, set_setting,
-    ensure_totp_secret, regenerate_totp, totp_info,
+    ensure_totp_secret, regenerate_totp, totp_info, public_endpoint,
 )
 from app.utils.activity import record
 
@@ -22,7 +22,9 @@ def config():
     users = User.query.order_by(User.username).all()
     aaa = {a.user_id: a for a in AaaUserAuth.query.all()}
     s = {k: get_setting(k) for k in _KEYS}
-    return render_template('admin/radius/config.html', users=users, aaa=aaa, s=s)
+    host, source = public_endpoint(detect=False)  # instant; JS fills if unknown
+    return render_template('admin/radius/config.html', users=users, aaa=aaa, s=s,
+                           endpoint_host=host, endpoint_source=source)
 
 
 @radius_bp.route('/settings', methods=['POST'])

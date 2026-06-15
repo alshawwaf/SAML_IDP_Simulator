@@ -146,6 +146,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
+/* Refresh-button spinner (reachable-address card) */
+.spin { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .hero-title {
   font-family: 'Outfit', sans-serif;
   font-weight: 700;

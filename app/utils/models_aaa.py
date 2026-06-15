@@ -69,6 +69,9 @@ _SETTING_SPEC = {
     "radius_acct_port": ("RADIUS_ACCT_PORT", False, int),
     "tacacs_secret":    ("TACACS_SECRET",    True,  str),
     "tacacs_port":      ("TACACS_PORT",      False, int),
+    # The address gateways / Gaia connect to. Blank = auto-detect (see
+    # public_endpoint); set it to pin a NAT/floating IP or hostname.
+    "public_host":      ("PUBLIC_HOST",      False, str),
 }
 
 
@@ -108,6 +111,54 @@ def set_setting(key, value):
 
 def settings_view():
     return {k: get_setting(k) for k in _SETTING_SPEC}
+
+
+# --- Reachable address (what gateways / Gaia point at) ---------------------
+# RADIUS/UDP and TACACS+/TCP bypass the Traefik web domain and hit the host's
+# public IP directly, so the portal resolves and shows that address. Detection
+# asks an external "what's my IP" echo service (HTTPS, certs verified) — it only
+# learns our own egress IP, no data is sent. Set PUBLIC_HOST (env or in-portal)
+# to skip detection entirely for NAT/offline labs.
+_PUBLIC_IP_SERVICES = (
+    "https://api.ipify.org",
+    "https://checkip.amazonaws.com",
+    "https://ifconfig.me/ip",
+    "https://ipinfo.io/ip",
+)
+_ip_cache = {"host": None, "source": None}  # per-worker; refreshed on demand
+
+
+def _detect_public_ip(timeout=3):
+    import ipaddress
+    import urllib.request
+    for url in _PUBLIC_IP_SERVICES:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "curl/8"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # TLS verified
+                text = resp.read().decode("utf-8", "replace").strip()
+            ip = text.split()[0] if text else ""
+            ipaddress.ip_address(ip)  # rejects anything that isn't a valid IP
+            return ip
+        except Exception:
+            continue
+    return None
+
+
+def public_endpoint(refresh=False, detect=True):
+    """(host, source) that gateways / Gaia should connect to.
+
+    A pinned `public_host` (in-portal setting or PUBLIC_HOST env) always wins.
+    Otherwise the auto-detected IP is used, cached per worker; `refresh=True`
+    re-detects. `detect=False` returns only what's already known (no network) so
+    page renders stay instant — the page's JS calls back to fill/refresh it."""
+    configured = get_setting("public_host")
+    if configured:
+        return configured, "configured"
+    if detect and (refresh or not _ip_cache["host"]):
+        ip = _detect_public_ip()
+        if ip:
+            _ip_cache.update(host=ip, source="auto-detected")
+    return _ip_cache["host"], (_ip_cache["source"] or "unknown")
 
 
 # --- TOTP (RFC 6238) MFA --------------------------------------------------

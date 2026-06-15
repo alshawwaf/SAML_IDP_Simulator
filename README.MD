@@ -77,7 +77,10 @@ Deploys straight from this repo — no YAML to paste, and `git push` redeploys.
 
 **Open the host firewall** for the AAA protocols — they're published on the host
 because Traefik only proxies HTTP: `udp/1812` + `udp/1813` (RADIUS) and `tcp/49`
-(TACACS+). The web UI is served on `IDP_DOMAIN` via Traefik.
+(TACACS+). The web UI is served on `IDP_DOMAIN` via Traefik. On hardened Docker
+hosts these ports can be silently dropped even when published — if RADIUS/TACACS+
+time out with nothing in the Live log, see
+[docs/RADIUS_TACACS_FIREWALL.md](docs/RADIUS_TACACS_FIREWALL.md).
 
 Then point Check Point at it:
 
@@ -391,6 +394,7 @@ Synced users appear in Check Point SASE under **Team → Members** with Identity
 | Every path returns a plain *"404 page not found"* | The reverse proxy (Traefik) has no healthy backend — the container isn't running. Check `docker logs <container>`. |
 | Container crash-loops on boot | A dependency drift can break `signxml` — it requires `pyOpenSSL < 24` (pinned in `requirements.txt`). Don't unpin without testing. |
 | Admin logged out / SCIM target "Test" fails after a redeploy | `SECRET_KEY` changed. Log in again; re-enter outbound SCIM tokens once. Pin `SECRET_KEY` in the env to avoid it. |
+| RADIUS/TACACS+ time out from Gaia/NAS, **nothing** in the Live log | The packet never reached the app — a host/cloud firewall is dropping it (hardened Docker hosts filter published ports in `DOCKER-USER`). Empty log = network, not app. See **[docs/RADIUS_TACACS_FIREWALL.md](docs/RADIUS_TACACS_FIREWALL.md)**. |
 
 ## Project layout
 
@@ -418,6 +422,7 @@ docs/                  # USER_GUIDE.md, SCIM_PLAN.md
 |---|---|
 | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | Operator walkthrough with screenshots — for SEs running demos (also [USER_GUIDE.docx](docs/USER_GUIDE.docx) for Teams) |
 | [docs/SCIM_PLAN.md](docs/SCIM_PLAN.md) | SCIM extension design and known compliance gaps |
+| [docs/RADIUS_TACACS_FIREWALL.md](docs/RADIUS_TACACS_FIREWALL.md) | Fix RADIUS/TACACS+ reachability behind a hardened Docker host (UFW `DOCKER-USER`) — diagnosis, fix, persistence |
 
 ## Contributing
 

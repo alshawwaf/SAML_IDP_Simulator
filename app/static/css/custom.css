@@ -98,16 +98,15 @@ h1, h2, h3, h4, h5, h6 {
    navbar's stacking context; bump it so it clears sibling content reliably. */
 .navbar .dropdown-menu {
   z-index: 1031;
-  /* Fully opaque so page content never bleeds through the open menu. */
   background-color: var(--bg-elevated) !important;
-  /* Read as a real dropdown, not a detached floating card: sit just under the
-     bar, hug the content width, lighter corners/border/shadow. */
-  margin-top: 0.4rem !important;
+  /* A soft menu popover, not a bordered floating box: small gap under the bar,
+     NO hard border (a hairline ring + soft shadow give depth), hug the content. */
+  margin-top: 0.3rem !important;
   min-width: 11rem;
+  border: none !important;
   border-radius: 10px !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   padding: 0.3rem !important;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
 }
 .navbar-brand .text-gradient {
   font-size: 1.4rem !important;
@@ -702,11 +701,10 @@ code {
 /* ===================== Toast notifications (flash) ===================== */
 .toast-stack {
   position: fixed;
-  top: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 1.25rem;
+  right: 1.25rem;
   z-index: 1080;
-  width: min(92vw, 460px);
+  width: min(92vw, 380px);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

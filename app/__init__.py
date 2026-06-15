@@ -402,6 +402,16 @@ def create_app(init_db=True):
             "admin_password_overridden": admin_password_overridden(),
         }
 
+    # Cache-bust static assets by file mtime so CSS/JS edits show up after a
+    # redeploy without a manual hard refresh.
+    @app.context_processor
+    def inject_asset_version():
+        try:
+            css = os.path.join(app.static_folder, "css", "custom.css")
+            return {"asset_v": int(os.path.getmtime(css))}
+        except OSError:
+            return {"asset_v": "0"}
+
     with app.app_context():
         from app.routes.metadata import metadata_bp
         from app.routes.auth import auth_bp

@@ -325,9 +325,9 @@ Check Point SASE doesn't expose `/ServiceProviderConfig` — the simulator's Tes
 
 The bearer token is invalid. Go back to Check Point SASE → Identity Providers → SCIM Integration → Settings → **Generate Token** (it'll invalidate the old one and give you a new one). Paste the new token into the simulator's target (edit the target, paste in the Bearer Token field, save).
 
-### Logs show "SCIM disabled" after setting ENABLE_SCIM=true
+### Logs show "SCIM disabled" even though you didn't turn it off
 
-Your Dokploy version isn't propagating Environment-tab vars into the docker-compose substitution context. Use the marker file fallback (section 4.2).
+SCIM is on by default, so this means it was forced off. Check both gates: (1) the **Environment** tab doesn't have `ENABLE_SCIM=false` (that overrides everything), and (2) the admin dashboard's **SCIM Provisioning** card isn't toggled to Disabled (that writes a `.scim-disabled` marker on the data volume). Re-enable from the card — the change takes effect immediately, no restart.
 
 ### Sync All shows N errored
 

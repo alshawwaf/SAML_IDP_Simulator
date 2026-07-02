@@ -20,11 +20,12 @@
 
 Standing up a real identity provider (Entra ID, Okta, …) just to demo or troubleshoot a Check Point SAML or SCIM integration is slow and brittle. This project is a lightweight IdP you fully control: point a Check Point Service Provider at it, sign in with a demo user, and get back a properly **signed SAML Response** — or flip on SCIM and push users into a Check Point SASE tenant.
 
-It is built for Check Point Sales Engineers and PoC teams, and its SAML flow has been **validated end-to-end against five Check Point products** (see below).
+It is built for Check Point Sales Engineers and PoC teams, and its SAML flow has been **validated end-to-end against five Check Point products** (see below). The same box also plays the AAA server — RADIUS and TACACS+ — so one deployment covers SAML SSO, SCIM provisioning, *and* Gaia/gateway RADIUS/TACACS+ auth.
 
-- **SAML 2.0** — SP-initiated SSO with a signed Response *and* signed Assertion, multiple Service Providers, and per-SP claim-to-attribute mapping.
+- **SAML 2.0** — SP-initiated SSO with a signed Response *and* signed Assertion, multiple Service Providers, first-class Groups (Entra/Okta-style UUIDs), and per-SP claim-to-attribute mapping.
 - **SCIM 2.0** — bidirectional: an inbound SCIM server (Entra ID / Okta push *in*) and an outbound SCIM client (push users *out* to Check Point SASE).
-- **Admin UI** — manage users, Service Providers, and SCIM targets; download metadata/cert; inspect a full provisioning audit log.
+- **RADIUS & TACACS+** — full auth/accounting RADIUS server (UDP 1812/1813) and a TACACS+ server (TCP), with per-user TOTP MFA (authenticator-app enrollment), Gaia role-based admin authorization, and a live click-to-open auth log.
+- **Admin UI** — manage users, Groups, Service Providers, SCIM targets, and RADIUS/TACACS+ settings; download metadata/cert; inspect a full provisioning and activity audit log.
 
 ## Table of contents
 
@@ -34,6 +35,7 @@ It is built for Check Point Sales Engineers and PoC teams, and its SAML flow has
 - [Configuration](#configuration)
 - [SAML usage](#saml-usage)
 - [SCIM 2.0 usage](#scim-20-usage)
+- [RADIUS & TACACS+ usage](#radius--tacacs-usage)
 - [Endpoint reference](#endpoint-reference)
 - [Architecture & security](#architecture--security)
 - [Troubleshooting](#troubleshooting)
@@ -73,7 +75,8 @@ Deploys straight from this repo — no YAML to paste, and `git push` redeploys.
    TACACS_SECRET=change-me
    ```
 3. Toggle **Autodeploy** on (redeploy on push), then **Deploy** (first build ≈ 2 min).
-4. *(Optional)* Set `ENABLE_SCIM=true` and redeploy to expose the SCIM surface.
+
+SCIM is **on by default** — no flag needed. Toggle it off from the admin dashboard, or set `ENABLE_SCIM=false` to force it off at deploy time.
 
 **Open the host firewall** for the AAA protocols — they're published on the host
 because Traefik only proxies HTTP: `udp/1812` + `udp/1813` (RADIUS) and `tcp/49`
@@ -314,9 +317,9 @@ SCIM is **on by default** and can be flipped on/off from the admin dashboard's *
 | **Inbound** | SCIM server at `/scim/v2/*` | Entra ID / Okta / JumpCloud push users *into* the simulator — offline SCIM client testing |
 | **Outbound** | SCIM client | The simulator pushes users *out* to Check Point SASE (or any RFC 7644 server) — the SASE demo flow |
 
-### Inbound: first boot with `ENABLE_SCIM=true`
+### Inbound: the auto-generated bearer token
 
-The simulator auto-generates an inbound bearer token, prints it to the startup log, and persists it to `/app/data/.scim-bootstrap-token`:
+With SCIM enabled (the default), the simulator auto-generates an inbound bearer token, prints it to the startup log, and persists it to `/app/data/.scim-bootstrap-token`:
 
 ```
 ======================================================================
@@ -341,6 +344,31 @@ The simulator pushes users into a Check Point SASE (Harmony SASE / Perimeter 81)
 
 Synced users appear in Check Point SASE under **Team → Members** with Identity Provider = Entra ID. Every outbound request is recorded in **Admin → SCIM → Push Log** with full request/response bodies — gold for narrating a live demo.
 
+## RADIUS & TACACS+ usage
+
+The same deployment runs an authentication/accounting **RADIUS** server and a **TACACS+** server against the same demo users, so you can validate Gaia / gateway auth without standing up a separate AAA box. Both protocol servers run in their own process (the web workers can't bind the sockets) and are supervised by `entrypoint.py`.
+
+- **Where** — RADIUS on `udp/1812` (auth) + `udp/1813` (accounting); TACACS+ on `tcp/49` (mapped to container port `4949`). These are published on the **host IP**, not the Traefik web domain — Traefik only routes HTTP. The **Admin → RADIUS / TACACS+** pages show the reachable, auto-detected host address to point Gaia at.
+- **Secrets** — shared secrets default to `testing123` (override with `RADIUS_SECRET` / `TACACS_SECRET`, or edit them in-app on the RADIUS / TACACS+ pages — the secret applies immediately).
+- **MFA** — enable per-user TOTP under **Admin → RADIUS**; scan the QR into an authenticator app (or use the predictable demo passcode via `AAA_DEFAULT_OTP`, default `123456`). RADIUS then expects password + OTP.
+- **Gaia role-based admin auth** — the servers return the vendor attributes Gaia uses to map an authenticated admin to a role, so RADIUS/TACACS+ admin login into Gaia works end-to-end.
+- **Live log** — every request lands in **Admin → RADIUS / TACACS+ → Log** with a click-to-open detail modal (accept/reject, attributes, raw packet).
+
+> If Gaia/NAS times out and the Live log stays **empty**, the packet never reached the app — a host/cloud firewall is dropping the published port. See **[docs/RADIUS_TACACS_FIREWALL.md](docs/RADIUS_TACACS_FIREWALL.md)**.
+
+### AAA configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `RADIUS_SECRET` | `testing123` | RADIUS shared secret (also editable in-app) |
+| `RADIUS_AUTH_PORT` / `RADIUS_ACCT_PORT` | `1812` / `1813` | RADIUS auth / accounting ports |
+| `TACACS_SECRET` | `testing123` | TACACS+ shared secret (also editable in-app) |
+| `TACACS_PORT` | `4949` | TACACS+ port inside the container (host `49` maps to it) |
+| `TACACS_PUBLIC_PORT` | `49` | Host-side TACACS+ port shown in the portal |
+| `AAA_DEFAULT_OTP` | `123456` | Predictable TOTP passcode for MFA demo users |
+| `AAA_BIND` | `0.0.0.0` | Bind address for the protocol servers |
+| `PUBLIC_HOST` | _auto-detect_ | Pin the host address shown in the portal (NAT / offline labs) |
+
 ## Endpoint reference
 
 <details>
@@ -360,7 +388,7 @@ Synced users appear in Check Point SASE under **Team → Members** with Identity
 </details>
 
 <details>
-<summary><b>SCIM 2.0 — only when <code>ENABLE_SCIM=true</code></b></summary>
+<summary><b>SCIM 2.0 — on by default (set <code>ENABLE_SCIM=false</code> to force off)</b></summary>
 
 | Endpoint | Description |
 |---|---|
@@ -374,13 +402,24 @@ Synced users appear in Check Point SASE under **Team → Members** with Identity
 
 </details>
 
+<details>
+<summary><b>Admin — RADIUS / TACACS+</b></summary>
+
+| Endpoint | Description |
+|---|---|
+| `/admin/radius/` · `/admin/radius/log` | RADIUS settings + per-user MFA / live auth log |
+| `/admin/tacacs/` · `/admin/tacacs/log` | TACACS+ settings + live auth log |
+| `/admin/aaa/endpoint` | Auto-detected host address the portal shows for RADIUS/TACACS+ |
+
+</details>
+
 ## Architecture & security
 
 - **Signing** — assertions and the response are signed with X.509 via `signxml` (RSA-SHA256, exclusive C14N, enveloped signature placed immediately after `Issuer`). The cert/key are generated on first boot and persisted to the `saml_idp_certs` volume.
 - **Hardened request parsing** — incoming `AuthnRequest`s are parsed with DTD/entity resolution disabled (no XXE).
 - **Secrets** — `SECRET_KEY` is generated and persisted when not provided; it is never hardcoded. Outbound SCIM tokens are Fernet-encrypted at rest; inbound tokens are stored as SHA-256 hashes.
 - **Auth & rate limiting** — admin and SSO login endpoints are rate-limited (Flask-Limiter). `/scim/v2/*` uses bearer tokens and is CSRF-exempt; the admin UI keeps CSRF protection.
-- **Runtime** — served by gunicorn in the container; `FLASK_DEBUG` defaults off.
+- **Runtime** — `entrypoint.py` supervises two processes: gunicorn (web) and a single AAA process for the RADIUS/TACACS+ servers (kept separate because gunicorn's multiple workers can't each bind the protocol sockets); if either exits the container restarts clean. `FLASK_DEBUG` defaults off.
 - **Audit log** — admin, auth, SAML, and SCIM changes are recorded to an activity log (**Admin → Activity**) with category/status filters and per-entry detail, alongside the SCIM push log.
 - **Persistence** — SQLite lives at `/app/data/app.db` on the `saml_idp_data` volume and survives redeploys; demo users and the four SP templates are seeded only into an empty database.
 
@@ -403,17 +442,26 @@ app/
   routes/
     auth.py            # /sso, /login, /logout — SAML SSO
     metadata.py        # /, /metadata, /download-metadata
-    admin.py           # /admin/* — user + SP management
+    admin.py           # /admin/* — user, Group + SP management, activity log
+    radius.py          # /admin/radius/* — RADIUS settings, per-user MFA, log
+    tacacs.py          # /admin/tacacs/* — TACACS+ settings, log
+    aaa.py             # /admin/aaa/* — reachable-endpoint auto-detection
     scim/              # SCIM server, outbound client, admin UI, mappers, filters, patch
+  services/
+    runner.py          # supervises the RADIUS + TACACS+ protocol servers (own process)
+    radius_server.py   # pyrad-based RADIUS auth/accounting server
+    tacacs_server.py   # TACACS+ server
   templates/           # Jinja templates (Bootstrap dark theme)
   static/              # CSS, JS, certs
   utils/
-    models.py          # User, ServiceProvider
+    models.py          # User, ServiceProvider, Group
     models_scim.py     # ScimTarget, ScimInboundToken, ScimGroup, ScimPushLog
+    models_aaa.py      # RADIUS/TACACS settings, per-user MFA/TOTP, AAA logs
     saml.py            # AuthnRequest parsing + signed Response/Assertion
     config_manager.py  # env-driven configuration
     crypto.py          # Fernet wrappers for SCIM token storage
-docs/                  # USER_GUIDE.md, SCIM_PLAN.md
+entrypoint.py          # generates the cert, then supervises the AAA + web processes
+docs/                  # USER_GUIDE.md, SCIM_PLAN.md, RADIUS_TACACS_FIREWALL.md
 ```
 
 ## Documentation

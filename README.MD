@@ -1,6 +1,8 @@
 <div align="center">
 
-# SAML + SCIM Identity Provider Simulator
+# Identity Provider (IdP) Simulator
+
+_A full Identity Provider simulator — SAML SSO + SCIM provisioning — for Check Point security POCs._
 
 **A self-hosted Identity Provider for testing Check Point SAML SSO and SCIM provisioning integrations.**
 

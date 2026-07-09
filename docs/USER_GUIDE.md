@@ -1,4 +1,4 @@
-# SAML + SCIM IDP Simulator — User Guide
+# Identity Provider (IdP) Simulator — User Guide
 
 A complete walkthrough for configuring the simulator with **Check Point SASE** (formerly Harmony SASE / Perimeter 81) for end-to-end identity demos, including SAML SSO and SCIM 2.0 provisioning.
 

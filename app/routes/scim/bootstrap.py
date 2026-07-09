@@ -5,6 +5,7 @@ and immediately use SCIM without generating a token manually. The auto-seeded
 token is logged once and written to a bootstrap file under /app/data/ so the
 operator can copy it out of Dokploy logs or via SSH.
 """
+import os
 from pathlib import Path
 
 from app.utils.config_manager import config_manager
@@ -33,9 +34,14 @@ def seed_default_scim_data():
         # Already have at least one token — don't disturb existing setup.
         return
 
-    raw_token = generate_inbound_token()
+    # If IDP_SCIM_TOKEN is provided (e.g. by the installer, which generates it
+    # and shares the SAME value with the SCIM client so the two match on a fresh
+    # deploy with zero manual steps), seed exactly that token. Otherwise fall
+    # back to a random one (standalone / manual use).
+    env_token = os.getenv("IDP_SCIM_TOKEN", "").strip()
+    raw_token = env_token or generate_inbound_token()
     record = ScimInboundToken(
-        name="default (auto-generated)",
+        name="default (from IDP_SCIM_TOKEN env)" if env_token else "default (auto-generated)",
         token_hash=hash_inbound_token(raw_token),
         enabled=True,
     )

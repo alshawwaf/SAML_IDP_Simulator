@@ -24,7 +24,7 @@ pandoc USER_GUIDE.md \
   --syntax-highlighting=tango \
   --toc \
   --toc-depth=2 \
-  --metadata title="SAML + SCIM IDP Simulator — User Guide" \
+  --metadata title="Identity Provider (IdP) Simulator — User Guide" \
   --metadata author="Khalid Al-Shawwaf · Check Point"
 
 bytes=$(stat -f%z USER_GUIDE.docx 2>/dev/null || stat -c%s USER_GUIDE.docx)
